@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xmlns:custom="CustomUxmlElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+
+<!-- STYLES -->
+<Style src="/Assets/Resources/GUI/USS/CommonStyles.uss" />
+<Style src="/Assets/Resources/GUI/USS/DarkTheme.uss" /> <!-- LightTheme -->
+<Style src="/Assets/Resources/GUI/USS/ImageLinks.uss" />
+
+<Style src="/Assets/Resources/GUI/CustomElements/Icon/CustomImage.uss" />
+<Style src="/Assets/Resources/GUI/CustomElements/Slider/CustomSlider.uss" />
+
+<Style src="/Assets/Resources/GUI/USS/HeaderStyles.uss" />
+<Style src="/Assets/Resources/GUI/USS/ModalWindows.uss" />
+<!-- ==================================================================================================== -->
+
+
+<!-- TEMPLATES -->
+<Template src="/Assets/Resources/GUI/UXML/MainHeader.uxml"                        name="MainHeader-template"/>
+
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/ExperimentBody.uxml"  name="ExperimentBody-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/DebugBody.uxml"            name="DebugBody-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DataBody.uxml"                          name="DataBody-template"/>
+<Template src="/Assets/Resources/GUI/UXML/InfoBody.uxml"                          name="InfoBody-template"/>
+<Template src="/Assets/Resources/GUI/UXML/CamerasBody.uxml"                       name="CamerasBody-template"/>
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/SettingsBody.uxml"      name="SettingsBody-template"/>
+
+<Template src="/Assets/Resources/GUI/UXML/ExitConfirmationModalWindow.uxml"       name="ExitConfirmationModalWindow-template"/>
+<!-- ==================================================================================================== -->
+
+
+
+<!-- MAIN MARKUP -->
+<VisualElement class="wrapper"                                      name="main-wrapper">
+
+    <Instance template="MainHeader-template"                        name="main-header"/>
+
+    <VisualElement                                                  name="main-body">
+        <Instance template="ExperimentBody-template"                name="experiment-body"/>
+        <Instance template="DebugBody-template"                     name="debug-body"/>
+        <Instance template="DataBody-template"                      name="data-body"/>
+        <Instance template="InfoBody-template"                      name="info-body"/>
+        <Instance template="CamerasBody-template"                   name="cameras-body"/>
+        <Instance template="SettingsBody-template"                  name="settings-body"/>
+    </VisualElement>
+
+    <VisualElement                                                  name="modal-windows">
+        <Instance template="ExitConfirmationModalWindow-template"   name="exit-confirmation-modal-window"/>
+    </VisualElement>
+
+</VisualElement>
+<!-- ==================================================================================================== -->
+
+
+    
+</UXML>

@@ -1,0 +1,20 @@
+﻿CustomImage {
+	display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+CustomImage .custom-image-shape {
+	overflow: hidden;	/* most important param */
+	background-size: contain;
+	background-repeat: no-repeat;
+    background-position: center center;
+
+	width: 100%;
+	height: 100%;
+}
+
+CustomImage .custom-image-color {
+	width: 100%;
+	height: 100%;
+}

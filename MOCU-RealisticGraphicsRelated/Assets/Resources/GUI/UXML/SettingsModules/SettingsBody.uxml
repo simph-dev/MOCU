@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<!-- TEMPLATES -->
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/ThemesPalettesModule.uxml"      name="ThemesPalettesModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/ModulesModule.uxml"             name="ModulesModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/ConfigsModule.uxml"             name="ConfigsModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/DirectoriesPathsModule.uxml"    name="DirectoriesPathsModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/DevicesModule.uxml"             name="DevicesModule-template"/>
+<!-- ==================================================================================================== -->
+
+<!-- STYLES -->
+<Style src="/Assets/Resources/GUI/USS/SettingsBodyStyles.uss" />
+<Style src="/Assets/Resources/GUI/USS/SettingsBodyModulesStyles.uss" />
+<!-- ==================================================================================================== -->
+
+
+<!-- MAIN MARKUP -->
+<VisualElement name="settings-body-template-wrapper" class="wrapper">
+    <VisualElement name="settings-body-left-part" class="body-container">
+        <VisualElement name="settings-body-left-part-first-row" class="body-container">
+            <Instance template="ThemesPalettesModule-template"  name="settings-body-left-part-themes-palettes"  class="body-module"/>
+        </VisualElement>
+
+        <VisualElement name="settings-body-left-part-second-row" class="body-container">
+            <Instance template="ModulesModule-template"  name="settings-body-left-part-modules"  class="body-module"/>
+            <Instance template="ConfigsModule-template"  name="settings-body-left-part-configs"  class="body-module"/>
+        </VisualElement>
+
+        <VisualElement name="settings-body-left-part-third-row" class="body-container">
+            <Instance template="DirectoriesPathsModule-template"  name="settings-body-left-part-directories-paths"  class="body-module"/>
+        </VisualElement>
+    </VisualElement>
+
+    <VisualElement name="settings-body-right-part" class="body-container">
+        <VisualElement name="settings-body-right-part-first-row" class="body-container">
+        </VisualElement>
+
+        <VisualElement name="settings-body-right-part-second-row" class="body-container">
+        </VisualElement>
+
+        <VisualElement name="settings-body-right-part-third-row" class="body-container">
+            <Instance template="DevicesModule-template"  name="settings-body-right-part-devices"  class="body-module"/>
+        </VisualElement>
+    </VisualElement>
+</VisualElement>
+<!-- ==================================================================================================== -->
+    
+</UXML>

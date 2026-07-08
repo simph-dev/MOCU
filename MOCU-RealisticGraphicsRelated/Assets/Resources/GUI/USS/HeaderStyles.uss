@@ -1,0 +1,109 @@
+#main-header-template-wrapper {
+	height: 30px;
+	width: 100%;
+	flex-direction: row;
+	justify-content: space-between;		/* tabs -- lest, close/min btns -- right */
+	
+	background-color: var(--main-modules-color);
+}
+
+#tabs, #exit-minimize-app-btns {
+	flex-direction: row;
+	height: 100%;
+}
+
+
+/* ICONS */
+#experiment-tab CustomImage .custom-image-shape		{ background-image: var(--ExperimentTabIcon);	}
+#debug-tab		CustomImage .custom-image-shape		{ background-image: var(--DebugTabIcon);		}
+#data-tab		CustomImage .custom-image-shape		{ background-image: var(--DataTabIcon);			}
+#info-tab		CustomImage .custom-image-shape		{ background-image: var(--InfoTabIcon);			}
+#cameras-tab	CustomImage .custom-image-shape		{ background-image: var(--CamerasTabIcon);		}
+#settings-tab	CustomImage .custom-image-shape		{ background-image: var(--SettingsTabIcon);		}
+/* ===================================================== */
+
+
+/* REGULAR (NOT ACTIVE) TAB ---------------------------- */
+.tab {
+	width: auto;
+	height: 100%;
+	flex-direction: row;
+	justify-content: center;	/* icon and text are close to each other, positioned on the tab center */
+	align-items: center;
+	padding: 0px 20px;			/* to prevent icon and text touching the tab bottom */ /* to leave space fro sides when active */
+
+	border-top-width: 5px;
+	border-top-color: transparent;
+}
+
+.tab-icon {
+	padding: 2px;
+	width: 25px;
+	height: 100%;
+}
+.tab-icon .custom-image-color {
+	background-color: var(--secondary-images-color);
+}
+
+.tab-text {
+	color: var(--secondary-font-color);
+	font-size: 14px;
+	margin-left: 3px;
+	-unity-font-style: bold;
+	-unity-text-align: middle-center;
+
+	/*pointer-events: none !important;	 to prevent event interception */
+}
+/* ===================================================== */
+
+
+
+/* ACTIVE and OPENED tabs ------------------------------------------ */
+.tab.isActive {	/* opened on main display */
+	border-top-color: var(--main-accent-color);
+	background-color: var(--main-window-color) !important;
+	justify-content: space-around !important;
+}
+
+.tab.isOpened {	/* opened on second display */
+	border-top-color: var(--secondary-images-color);
+	background-color: var(--secodary-tab-color);
+}
+
+.tab.isActive .icon-color {
+	background-color: var(--main-images-color) !important;
+}
+
+.tab.isActive .tab-text {
+	color: var(--main-font-color) !important;
+}
+/* ===================================================== */
+
+
+
+/* CLOSE / MINIMIZE BUTTONS ------------------------------------------ */
+#minimize-game-btn, #close-game-btn {
+	width: 30px;
+	height: 100%;
+	justify-content: center;
+	align-items: center;
+}
+
+#minimize-game-btn .close_minimize_btns-icon-shape {
+	width: 15px;
+	height: 15px;
+}
+
+#close-game-btn .close_minimize_btns-icon-shape {
+	width: 12px;
+	height: 12px;
+}
+
+.close_minimize_btns-icon-color {
+	background-color: var(--secondary-images-color);
+}
+
+#minimize-game-btn:hover .close_minimize_btns-icon-color, #close-game-btn:hover .close_minimize_btns-icon-color {
+	background-color: var(--main-images-color);
+}
+/* ===================================================== */

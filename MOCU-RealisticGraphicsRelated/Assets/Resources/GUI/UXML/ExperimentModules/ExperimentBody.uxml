@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<!-- TEMPLATES -->
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/UnityModule.uxml"         name="UnityModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/ControlsModule.uxml"      name="ControlsModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/EegModule.uxml"           name="EegModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/AnswersGraphModule.uxml"  name="AnswersGraphModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/InfoModule.uxml"          name="InfoModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/InputsModule.uxml"        name="InputsModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/StatusesModule.uxml"      name="StatusesModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/TableModule.uxml"         name="TableModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/ExperimentModules/WarningsModule.uxml"      name="WarningsModule-template"/>
+<!-- ==================================================================================================== -->
+
+<!-- STYLES -->
+<Style src="/Assets/Resources/GUI/USS/ExperimentBodyStyles.uss" />
+<Style src="/Assets/Resources/GUI/USS/ExperimentBodyModulesStyles.uss" />
+<!-- ==================================================================================================== -->
+
+
+
+<!-- MAIN MARKUP -->
+<VisualElement name="experiment-body-template-wrapper" class="wrapper">
+    <VisualElement name="experiment-body-left-part" class="body-container">
+        <Instance template="InputsModule-template"      name="experiment-body-left-part-inputs"      class="body-module"/>
+        <Instance template="TableModule-template"       name="experiment-body-left-part-table"       class="body-module"/>
+        <Instance template="ControlsModule-template"    name="experiment-body-left-part-controls"    class="body-module"/>
+    </VisualElement>
+
+
+    <VisualElement name="experiment-body-right-part" class="body-container">
+        <Instance template="StatusesModule-template"    name="experiment-body-right-part-statuses" class="body-module"/>
+
+        <VisualElement name="experiment-body-right-part-monitors" class="body-container">
+            <Instance template="UnityModule-template"   name="experiment-body-right-part-monitors-unity"    class="body-module"/>
+            <Instance template="EegModule-template"     name="experiment-body-right-part-monitors-eeg"      class="body-module"/>
+        </VisualElement>
+
+        <VisualElement name="experiment-body-right-part-data" class="body-container">
+            <VisualElement name="experiment-body-right-part-data-left" class="body-container">
+                <Instance template="InfoModule-template"        name="experiment-body-right-part-data-left-info"        class="body-module"/>
+                <Instance template="WarningsModule-template"    name="experiment-body-right-part-data-left-warnings"    class="body-module"/>
+            </VisualElement>
+            <VisualElement name="experiment-body-right-part-data-right" class="body-container">
+                <Instance template="AnswersGraphModule-template"       name="experiment-body-right-part-data-right-graph"      class="body-module"/>
+            </VisualElement>
+        </VisualElement>
+    </VisualElement>
+</VisualElement>
+<!-- ==================================================================================================== -->
+    
+</UXML>

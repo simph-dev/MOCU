@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="exit-confirmation-modal-window-wrapper" class="modal-window-wrapper">
+    <VisualElement class="modal-window">
+        <TextElement name="modal-window-text" text="Are you sure you want to quit?"/>
+
+        <VisualElement name="modal-window-btns-holder">
+            <VisualElement name="exit-confirm-btn">
+                <TextElement text="Yes"/>
+                <VisualElement class="icon-shape" style="background-image: url('/Assets/Images/SVG/ExitDoor.svg');">
+                    <VisualElement class="icon-color"></VisualElement>
+                </VisualElement>
+            </VisualElement>
+
+            <VisualElement name="exit-cancel-btn">
+                <TextElement text="No"/>
+            </VisualElement>
+        </VisualElement>
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

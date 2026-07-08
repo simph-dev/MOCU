@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<!-- TEMPLATES ====================================================================== -->
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/FpsSubModule.uxml"             name="FpsSubModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/DevicesSubModule.uxml"         name="DevicesSubModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/DaemonsSubModule.uxml"         name="DaemonsSubModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/DifferentInfoSubModule.uxml"   name="DifferentInfoSubModule-template"/>
+<!-- ================================================================================ -->
+
+
+
+<VisualElement name="debug-body-info-panels-wrapper" class="wrapper">
+    <VisualElement name="debug-body-info-panels-data" class="body-module">
+        <Instance template="FpsSubModule-template"                  name="debug-body-fps"       class="body-module"/>
+
+        <VisualElement name="debug-body-all-but-fps" class="body-module">
+            <Instance template="DevicesSubModule-template"          name="debug-body-devices"   class="body-module"/>
+            <Instance template="DaemonsSubModule-template"          name="debug-body-daemons"   class="body-module"/>
+            <Instance template="DifferentInfoSubModule-template"    name="debug-body-different" class="body-module"/>
+        </VisualElement>
+
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

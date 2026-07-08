@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement class="device-option-row">
+    <!-- a colored circle showing the status of the device -->
+    <VisualElement class="device-option-status"></VisualElement>
+
+    <!-- a button with the device name -->
+    <TextElement class="device-option-full-name" text="device-option-full-name"/>
+
+    <!-- the button to turn off the device -->
+    <!-- <VisualElement class="icon-shape device-option-disconnect-btn" style="background-image: url('/Assets/Images/SVG/CloseIcon.svg');">
+        <VisualElement class="icon-color"></VisualElement>
+    </VisualElement> -->
+
+    <!-- the button for ringing the device -->
+    <VisualElement class="icon-shape device-option-bell-btn" style="background-image: url('/Assets/Images/SVG/BellIcon.svg');">
+        <VisualElement class="icon-color"></VisualElement>
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

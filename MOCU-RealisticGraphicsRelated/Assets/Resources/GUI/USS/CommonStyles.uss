@@ -1,0 +1,227 @@
+/* DISPLAYS */
+#the-primary-display,
+#the-secondary-display
+{
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+#the-secondary-display .tab,
+#the-secondary-display #close-game-btn
+{
+	display: none;
+}
+
+
+
+/* Class for VisualElement with SVG as background-image. Servs as shape to be collored later (in child VisualElement with "icon-color" class) */
+.icon-shape {
+	overflow: hidden;					/* most important param */
+	background-size: contain;
+	background-repeat: no-repeat;
+    background-position: center center;
+}
+
+/* Class for VisualElement which will be colored (background-color) and serves as color for SVG image. All this because USS can't color SVGs... */
+.icon-color {
+	width: 100%;
+	height: 100%;
+}
+
+
+.isDisabled {
+	opacity: 0.4;
+}
+
+
+ScrollView {
+	overflow: scroll;
+}
+ScrollView Scroller {
+	margin-left: 5px;
+	margin-right: -14px;
+}
+ScrollView Scroller * {
+	min-width: 10px;
+	max-width: 10px;
+	width: 10px;
+}
+ScrollView Scroller #unity-low-button,
+ScrollView Scroller #unity-high-button,
+ScrollView Scroller #unity-slider,
+ScrollView Scroller #unity-slider > VisualElement,
+ScrollView Scroller #unity-slider #unity-tracker,
+ScrollView Scroller #unity-slider #unity-dragger,
+ScrollView Scroller #unity-slider #unity-drag-container {
+	margin-right: 0;
+	margin-left: 0;
+	left: 0;
+	right: 0;
+}
+ScrollView Scroller #unity-low-button,
+ScrollView Scroller #unity-high-button {
+	display: none;
+}
+ScrollView Scroller #unity-slider {
+	margin-top: 0;
+	margin-bottom: 0;
+}
+ScrollView #unity-dragger {
+	/* max-height: 27px; */
+}
+
+
+TextElement {
+	color: var(--main-font-color);
+	-unity-text-align: middle-center;
+	-unity-font-style: bold;
+	/* white-space: pre-wrap;	 if there is '\n' in text -- execute it as new line  --- doesn't work in Unity*/
+}
+
+TextElement.has-error {
+	color: var(--error-color);
+}
+TextElement.has-warning {
+	color: var(--warning-color);
+}
+TextElement.is-inactive {
+	color: var(--waiting-color);
+}
+TextElement.normal {
+	color: var(--main-font-color);
+}
+
+.button {
+	justify-content: center;
+	background-color: var(--main-buttons-color);
+	padding: 5px;
+}
+
+.button:hover {
+	background-color: var(--main-buttons-hover-color);
+}
+
+.button:active {
+	/* doesn't work */
+	background-color: red; /*#6a6a6a;*/
+}
+
+/* .button.isDisabled, .button.isDisabled * {
+	background-color: var(--main-buttons-disabled-color);
+}
+
+.button.isDisabled TextElement {
+	color: var(--main-disabled-font-color);
+} */
+
+
+
+
+
+#main-wrapper {
+	flex-direction: column;
+	background-color: var(--main-window-color);
+}
+
+.wrapper {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+#main-body, #main-body > * {
+	width: 100%;
+	height: 100%;
+}
+
+.body-module {
+	margin: 5px;
+}
+
+/* Small gray text in the corner */
+.module-label {
+	position: absolute;
+	width: auto;
+	height: auto;
+	margin: 3px;
+	right: 0;
+	top: 0;
+	color: var(--waiting-color);
+	font-size: 10px;
+	-unity-font-style: normal;
+}
+
+/* Big white at the top center */
+.module-title {
+	position: relative;
+	width: 100%;
+	height: auto;
+	margin: 3px 0;
+	color: var(--main-font-color);
+	font-size: 16px;
+	-unity-font-style: bold;
+	-unity-text-align: middle-center;
+	margin-bottom: 10px;
+	flex-direction: row;
+	justify-content: center;
+}
+
+
+
+#modal-windows {
+	position: absolute;
+    width: 100%;
+    height: 100%;
+	/* z-index: 100; */
+}
+
+#modal-windows > * {
+	width: 100%;
+    height: 100%;
+}
+
+TextField * {
+	margin: 0;
+	border-width: 0;
+	padding: 0;
+}
+
+
+
+#modal-windows, #modal-windows > *,
+#data-body, #info-body, #cameras-body, #debug-body, #settings-body,	/* , #experiment-body,  -- for dev it's open in redactor #debug-body*/
+#experiment-body-right-part-monitors-eeg, #eeg-status-block {
+	display: none;
+}
+
+.unhidden {
+	display: flex !important;
+}
+
+.hidden {
+	display: none !important;
+}
+
+
+
+
+/* border-left-width: 1px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: red; */
+
+DeviceBoxPanel {
+	flex-direction: column;
+	display: flex;
+	justify-content: space-between;
+}
+
+DeviceBoxPanel .device-box-panel-info-section {
+	width: 50px;
+	height: 50px;
+	background-color: red;
+}

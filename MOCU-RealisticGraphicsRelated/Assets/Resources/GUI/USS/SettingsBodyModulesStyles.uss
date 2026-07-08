@@ -1,0 +1,185 @@
+#settings-body-template-wrapper .body-module {
+	background-color: var(--main-modules-color);
+}
+
+.module-header-text {
+	-unity-text-align: middle-left;
+	-unity-font-style: bold;
+	font-size: 14px;
+	padding: 5px 0;
+}
+
+.settings-module-template-wrapper {
+	flex-direction: column;
+}
+
+.settings-module-window {
+	flex-grow: 1;
+	padding: 5px 7px;
+}
+
+/* DEVICES */
+#settings-devices-module-window {
+	flex-direction: row;
+	align-items: flex-end;
+	justify-content: flex-start;
+}
+
+.settings-module-header {
+	justify-content: space-between;
+	padding: 0 14px;
+	flex-direction: row;
+	align-items: center;
+}
+.settings-module-header-left-part {
+	justify-content: space-between;
+	width: 90px;
+	flex-direction: row;
+	align-items: center;
+}
+#settings-devices-back-btn {
+	visibility: hidden;
+	width: 14px;
+	height: 14px;
+}
+#settings-devices-back-btn .custom-image-shape {
+	background-image: var(--CloseIcon);
+}
+#settings-devices-back-btn .custom-image-color {
+	background-color: var(--main-images-color);
+}
+
+
+
+SettingsDeviceBox {
+	flex-direction: column;
+	align-items: center;
+	margin: 0px 7px;
+	height: 100%;
+	width: auto;
+	justify-content: space-around;
+}
+SettingsDeviceBox:hover CustomSlider {
+	visibility: visible;
+}
+SettingsDeviceBox.hidden-slider CustomSlider {
+	visibility: hidden;
+}
+
+
+/* common */
+SettingsDeviceBox CustomImage,
+.settings-device-box-icon {
+	width: 70px;
+	height: 70px;
+	padding: 12px;
+	background-color: var(--main-window-color);
+}
+SettingsDeviceBox CustomImage .custom-image-color,
+.settings-device-box-icon .custom-image-color {
+	background-color: var(--secondary-images-color);
+}
+/* icon paths */
+#settings-device-box-microphone-researcher CustomImage .custom-image-shape,
+#settings-device-box-microphone-participant CustomImage .custom-image-shape {
+	background-image: var(--MicrophoneIcon);
+}
+#settings-device-box-speaker-researcher CustomImage .custom-image-shape,
+#settings-device-box-speaker-participant CustomImage .custom-image-shape {
+	background-image: var(--SpeakerIcon);
+}
+#settings-device-box-camera-1 CustomImage .custom-image-shape,
+#settings-device-box-camera-2 CustomImage .custom-image-shape {
+	background-image: var(--CameraIcon);
+}
+#settings-device-box-controller CustomImage .custom-image-shape {
+	background-image: var(--ControllerIcon);
+}
+
+
+
+SettingsDeviceBox TextElement {
+	font-size: 10px;
+	color: var(--secondary-font-color);
+}
+
+/* DEVICES CHOOSE WINDOW */
+#settings-devices-choose-device-window {
+	flex-grow: 1;
+	height: 100%;
+
+	/* will be shown only after click on device-box */
+	display: none;
+}
+.device-option-row {
+	width: 100%;
+	height: 28px;
+	flex-direction: row;
+	margin-bottom: 5px;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.device-option-status,
+.device-option-bell-btn,
+.device-option-full-name {
+	margin-right: 7px;
+}
+
+.device-option-status {
+	width: 13px;
+	height: 13px;
+	border-radius: 50%;
+	justify-content: space-between;
+}
+.current-device .device-option-status {
+	background-color: var(--main-accent-color);
+}
+.already-chosen-device .device-option-status {
+	background-color: var(--secondary-images-color);
+}
+.ready-to-use-device .device-option-status {
+	background-color: transparent;
+}
+
+.device-option-full-name {
+	background-color: var(--secondary-images-color);
+	padding: 0 5px;
+	flex-grow: 1;
+	height: 100%;
+	-unity-text-align: middle-left;
+}
+.already-chosen-device .device-option-full-name,
+.ready-to-use-device .device-option-full-name {
+	-unity-font-style: normal;
+}
+.current-device .device-option-full-name {
+	-unity-font-style: bold;
+}
+
+.icon-shape.device-option-bell-btn {
+	width: 26px;
+	height: 26px;
+
+	/* switch via code */
+	visibility: hidden;
+}
+
+.icon-shape.device-option-bell-btn .icon-color {
+	background-color: var(--secondary-images-color);
+}
+
+
+
+/* SLIDERS */
+SettingsDeviceBox CustomSlider {
+	visibility: hidden;
+	height: 6px;
+	width: 100%;
+}
+SettingsDeviceBox CustomSlider #unity-tracker {
+	background-color: var(--secondary-images-color);
+}
+SettingsDeviceBox CustomSlider .slider-filler {
+	background-color: var(--main-accent-color);
+}

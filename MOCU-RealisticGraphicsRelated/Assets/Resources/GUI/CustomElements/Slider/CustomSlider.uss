@@ -1,0 +1,39 @@
+﻿CustomSlider {
+	max-height: none;
+	min-height: auto;
+	overflow: hidden;
+	justify-content: center;
+	align-items: center;
+}
+CustomSlider, CustomSlider * {
+	margin: 0;
+	padding: 0;
+	top: 0;
+	bottom: 0;
+	border-width: 0;
+	height: 100%;
+}
+CustomSlider > VisualElement {
+	justify-content: center;
+	align-items: center;
+}
+CustomSlider #unity-tracker {
+	height: 100%;
+}
+CustomSlider #unity-dragger {
+	width: 0;
+}
+CustomSlider .slider-filler {
+	width: 5000px;
+	align-self: flex-end;
+}
+
+/* CustomSlider differs from Slider in replacing Dragger (dot where is value) by Filler (bar untill value) */
+
+/*
+container
+	tracker
+	dragger-border
+	dragger
+		filling
+*/

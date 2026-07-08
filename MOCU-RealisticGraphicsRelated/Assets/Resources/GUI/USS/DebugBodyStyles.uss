@@ -1,0 +1,67 @@
+#debug-body-movement-graph, #debug-body-moog-acceleration-graph, #debug-body-console,
+.debug-module-data, .debug-module-chart{
+	background-color: var(--main-modules-color);
+}
+
+#debug-body-experiment-timeline-wrapper, #debug-body-trial-wrapper, #debug-body-cpu-wrapper, #debug-body-memory-wrapper,
+#debug-body-center-part, #debug-body-bottom-part {
+	flex-direction: row;
+}
+
+#debug-body-template-wrapper, #debug-body-center-left-part {
+	flex-direction: column;
+}
+
+
+
+#debug-body-top-part {
+	height: 15%;
+	margin-top: 15px;
+}
+
+#debug-body-center-part {
+	height: 65%;
+}
+
+#debug-body-bottom-part {
+	height: 20%;
+}
+
+
+
+#debug-body-center-left-part, #debug-body-bottom-left-part {
+	width: 60%;
+}
+
+#debug-body-center-right-part, #debug-body-bottom-right-part {
+	width: 40%;
+}
+
+
+
+#debug-body-trial {
+	height: 50%;
+}
+
+#debug-body-info-panels {
+	height: 50%;
+	width: 100%;
+}
+
+#debug-body-experiment-timeline, #debug-body-experiment-timeline-wrapper,
+#debug-body-movement-graph, #debug-body-console, #debug-body-moog-acceleration-graph {
+	height: 100%;
+}
+
+
+
+.debug-module-data,
+#debug-body-fps,
+#debug-body-different{
+	width: 220px;
+}
+
+.debug-module-chart,
+#debug-body-all-but-fps {
+	flex-grow: 1;
+}

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<!-- TEMPLATES -->
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/ExperimentTimelineModule.uxml"     name="ExperimentTimelineModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/LastTrialDataModule.uxml"          name="LastTrialDataModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/InfoPanelsModule.uxml"             name="InfoPanelsModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/ConsoleModule.uxml"                name="ConsoleModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/MovementGraphModule.uxml"          name="MovementGraphModule-template"/>
+<Template src="/Assets/Resources/GUI/UXML/DebugModules/MoogAccelerationGraphModule.uxml"  name="MoogAccelerationGraphModule-template"/>
+<!-- ==================================================================================================== -->
+
+<!-- STYLES -->
+<Style src="/Assets/Resources/GUI/USS/DebugBodyStyles.uss" />
+<Style src="/Assets/Resources/GUI/USS/DebugBodyModulesStyles.uss" />
+<!-- ==================================================================================================== -->
+
+
+<!-- MAIN MARKUP -->
+<VisualElement name="debug-body-template-wrapper" class="wrapper">
+    
+    <VisualElement name="debug-body-top-part">
+        <Instance template="ExperimentTimelineModule-template"          name="debug-body-experiment-timeline"       class="body-container"/>
+    </VisualElement>
+
+    <VisualElement name="debug-body-center-part">
+        <VisualElement name="debug-body-center-left-part" class="body-container">
+            <Instance template="LastTrialDataModule-template"           name="debug-body-trial"                 class="body-container"/>
+            <Instance template="InfoPanelsModule-template"           name="debug-body-info-panels"                 class="body-container"/>
+        </VisualElement>
+
+        <VisualElement name="debug-body-center-right-part" class="body-container">
+            <Instance template="MovementGraphModule-template"           name="debug-body-movement-graph"        class="body-module"/>
+        </VisualElement>
+    </VisualElement>
+
+    <VisualElement name="debug-body-bottom-part" class="body-container">
+        <VisualElement name="debug-body-bottom-left-part" class="body-container">
+            <Instance template="ConsoleModule-template"                 name="debug-body-console"               class="body-module"/>
+        </VisualElement>
+
+        <VisualElement name="debug-body-bottom-right-part" class="body-container">
+            <Instance template="MoogAccelerationGraphModule-template"   name="debug-body-moog-acceleration-graph"    class="body-module"/>
+        </VisualElement>
+    </VisualElement>
+
+</VisualElement>
+<!-- ==================================================================================================== -->
+
+
+    
+</UXML>

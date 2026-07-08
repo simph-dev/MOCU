@@ -1,0 +1,25 @@
+:root {
+	--main-window-color				:	#474747;
+	--main-modules-color			:	#2F2F2F;
+	--secodary-tab-color			:	#3B3B3B;
+
+	--main-font-color				:	#E3E3E3;
+	--main-disabled-font-color		:	#747474;
+	--secondary-font-color			:	#9A9B9B;
+	--contrast-font-color			:	#474747;
+
+	--main-buttons-color			:	#666666;
+	--main-buttons-hover-color		:	#747474;
+	--main-buttons-disabled-color	:	#4f4f4f;
+	--active-buttons-color			:	#B9CDFF;
+
+	--main-images-color				:	#E3E3E3;
+	--secondary-images-color		:	#9A9B9B;
+
+	--main-accent-color				:	#5580ED;
+	--warning-color					:	#FCBA58;
+	--error-color					:	#FC5858;
+	--error-hover-color				:	#ff6a6a;
+	--waiting-color					:	#9A9B9B;
+	--waiting-hover-color			:	#a4a4a4;
+}

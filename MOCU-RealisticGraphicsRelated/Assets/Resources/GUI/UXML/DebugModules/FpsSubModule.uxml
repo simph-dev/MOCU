@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="debug-fps-submodule-template-wrapper" class="wrapper">
+    <TextElement class="module-title" text="Unity FPS"/>
+
+    <VisualElement name="debug-fps-data">
+        <VisualElement name="debug-fps-bar-side">
+            <!-- high bound -->
+            <!-- kinda slider -->
+            <!-- low bound -->
+        </VisualElement>
+
+        <VisualElement name="debug-fps-numbers-side">
+            <VisualElement name="debug-fps-numbers-side-current-fps">
+                <TextElement name="debug-current-fps-value" text="X"/>
+            </VisualElement>
+
+            <VisualElement name="debug-fps-numbers-side-last-frame">
+                <TextElement class="debug-fps-timing-value" name="debug-last-frame-value" text="X"/>
+                <TextElement class="debug-fps-timing-label" text="last frame"/>
+            </VisualElement>
+
+            <VisualElement name="debug-fps-numbers-side-average-frame">
+                <TextElement class="debug-fps-timing-value" name="debug-average-frame-value" text="X"/>
+                <TextElement class="debug-fps-timing-label" text="average frame"/>
+            </VisualElement>
+        </VisualElement>
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

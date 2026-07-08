@@ -1,0 +1,116 @@
+#settings-body-template-wrapper {
+	flex-direction: row;
+}
+
+#settings-body-left-part, #settings-body-right-part {
+	width: 50%;
+	height: 100%;
+	flex-direction: column;
+}
+
+#settings-body-left-part-first-row, #settings-body-right-part-first-row {
+	height: 40%;
+}
+#settings-body-left-part-second-row, #settings-body-right-part-second-row {
+	height: 45%;
+}
+#settings-body-left-part-third-row, #settings-body-right-part-third-row {
+	height: 15%;
+}
+
+#settings-body-left-part-second-row {
+	flex-direction: row;
+}
+
+#settings-body-left-part-modules, #settings-body-left-part-configs {
+	width: 50%;
+}
+
+#settings-body-left-part-themes-palettes,
+#settings-body-left-part-directories-paths,
+#settings-body-right-part-devices {
+	height: 100%;
+}
+
+/*
+
+#experiment-body-left-part-table {
+	background-color: var(--main-buttons-color);
+}
+
+#experiment-body-right-part-monitors-unity, #experiment-body-right-part-data-left-info,
+#experiment-body-right-part-data-left-warnings, #experiment-body-right-part-data-right-graph {
+	background-color: var(--main-modules-color);
+}
+
+
+
+
+#experiment-body-left-part, #experiment-body-right-part {
+	 it devides screen to half 
+	width: 50%;
+	height: 100%;
+	flex-direction: column;
+}
+
+
+
+
+#experiment-body-left-part-inputs, #experiment-body-right-part-statuses {
+	height: 55px;
+}
+
+#experiment-body-left-part-table {
+	flex-grow: 1;
+}
+
+#experiment-body-left-part-controls, #experiment-body-right-part-data-left-warnings {
+	height: 150px;
+}
+
+
+
+
+#experiment-body-right-part-statuses {}
+
+#experiment-body-right-part-monitors {
+	height: 55%;
+}
+
+#experiment-body-right-part-data {
+	flex-grow: 1;
+}
+
+#experiment-body-right-part-data {
+	flex-direction: row;
+}
+
+#experiment-body-right-part-monitors-unity {
+	not 100% -- to leave space for eeg
+	flex-grow: 3;
+}
+
+#experiment-body-right-part-monitors-eeg {
+	display: none;
+	flex-grow: 1;
+}
+
+#experiment-body-right-part-data-left, #experiment-body-right-part-data-right {
+	it devides screen to half
+	width: 50%;
+	height: 100%;
+}
+
+#experiment-body-right-part-data-left {
+	flex-direction: column;
+}
+
+#experiment-body-right-part-data-left-info {
+	flex-grow: 1;
+}
+
+#experiment-body-right-part-data-left-warnings {}
+
+#experiment-body-right-part-data-right-graph {
+	height: 100%;
+} */

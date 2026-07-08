@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xmlns:custom="CustomUxmlElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+<!-- STYLES -->
+<Style src="/Assets/Scripts/UiRelated/TabHandlers/Settings/DevicesModule/DeviceBoxPanel.uss" />
+<!-- ==================================================================================================== -->
+
+<!-- TEMPLATES -->
+<Template src="/Assets/Resources/GUI/UXML/SettingsModules/DeviceOptionModule.uxml"      name="DeviceOptionModule-template"/>
+<!-- ================================================================================ -->
+
+
+<VisualElement name="settings-devices-module-template-wrapper" class="wrapper settings-module-template-wrapper">
+    <VisualElement class="settings-module-header">
+        <VisualElement class="settings-module-header-left-part">
+            <TextElement class="module-header-text" text="Devices"/>
+            <!-- <custom:CustomImage name="settings-devices-update-btn"/> -->
+        </VisualElement>
+
+        <custom:CustomImage name="settings-devices-back-btn"/>
+    </VisualElement>
+    
+
+
+    <VisualElement name="settings-devices-module-window" class="settings-module-window">
+
+        <custom:DeviceBoxPanel/>
+        <custom:DeviceBoxPanel_Microphones/>
+        
+        <!-- <custom:SettingsDeviceBox name="settings-device-box-microphone-researcher"  text="Mic (R)"      class="hidden-slider"/>
+        <custom:SettingsDeviceBox name="settings-device-box-microphone-participant" text="Mic (P)"      class="hidden-slider"/>
+        <custom:SettingsDeviceBox name="settings-device-box-speaker-researcher"     text="Speaker (R)"/>
+        <custom:SettingsDeviceBox name="settings-device-box-speaker-participant"    text="Speaker (P)"/>
+        <custom:SettingsDeviceBox name="settings-device-box-camera-1"               text="Camera (P1)"  class="hidden-slider"/>
+        <custom:SettingsDeviceBox name="settings-device-box-camera-2"               text="Camera (P2)"  class="hidden-slider"/>
+        <custom:SettingsDeviceBox name="settings-device-box-controller"             text="Controller"   class="hidden-slider"/>
+
+
+        <VisualElement name="settings-devices-choose-device-window">
+            <ScrollView>
+                <!- classes: "current-device", "already-chosen-device", "ready-to-use-device"
+
+                example:
+                <Instance template="DeviceOptionModule-template" class="ready-to-use-device"/>
+                <Instance template="DeviceOptionModule-template" class="ready-to-use-device"/> ->
+            </ScrollView>
+        </VisualElement> -->
+    </VisualElement>
+
+
+</VisualElement>
+
+    
+</UXML>

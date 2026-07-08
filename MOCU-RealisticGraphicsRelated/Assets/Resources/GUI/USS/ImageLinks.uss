@@ -1,0 +1,40 @@
+:root {
+	--ExperimentTabIcon		: url('/Assets/Images/SVG/ExperimentTabIcon.svg');
+	--DebugTabIcon			: url('/Assets/Images/SVG/DebugTabIcon.svg');
+	--DataTabIcon			: url('/Assets/Images/SVG/DataTabIcon.svg');
+	--InfoTabIcon			: url('/Assets/Images/SVG/InfoTabIcon.svg');
+	--CamerasTabIcon		: url('/Assets/Images/SVG/CameraIcon.svg');
+	--SettingsTabIcon		: url('/Assets/Images/SVG/SettingsTabIcon.svg');
+
+	--IntercomActiveIcon	: url('/Assets/Images/SVG/IntercomActiveIcon.svg');
+	--IntercomDisabledIcon	: url('/Assets/Images/SVG/IntercomDisabledIcon.svg');
+	--IntercomInactiveIcon	: url('/Assets/Images/SVG/IntercomInactiveIcon.svg');
+
+	--MinimizeGameIcon		: url('/Assets/Images/SVG/MinimizeGameIcon.svg');
+	--CloseIcon				: url('/Assets/Images/SVG/CloseIcon.svg');
+
+	--ArrowIcon				: url('/Assets/Images/SVG/ArrowIcon.svg');
+	--BellIcon				: url('/Assets/Images/SVG/BellIcon.svg');
+	
+	--MicrophoneIcon		: url('/Assets/Images/SVG/IntercomActiveIcon.svg');
+	--SpeakerIcon			: url('/Assets/Images/SVG/SpeakerIcon.svg');
+	--CameraIcon			: url('/Assets/Images/SVG/CameraIcon.svg');
+	--ControllerIcon		: url('/Assets/Images/SVG/ControllerIcon.svg');
+	--CedrusIcon			: url('/Assets/Images/SVG/CedrusIcon.svg');
+	--KeyboardIcon			: url('/Assets/Images/SVG/KeyboardIcon.svg');
+	--HeadphonesIcon		: url('/Assets/Images/SVG/HeadphonesIcon.svg');
+	--MonitorIcon			: url('/Assets/Images/SVG/MonitorIcon.svg');
+	
+	--IncomingMessageIcon	: url('/Assets/Images/SVG/IncomingMessageIcon.svg');
+	--OutgoingMessageIcon	: url('/Assets/Images/SVG/OutgoingMessageIcon.svg');
+	
+	--DeleteIcon			: url('/Assets/Images/SVG/DeleteIcon.svg');
+	--EditIcon				: url('/Assets/Images/SVG/EditIcon.svg');
+	--ExitDoor				: url('/Assets/Images/SVG/ExitDoor.svg');
+	--SearchIcon			: url('/Assets/Images/SVG/MagnifyingGlassIcon.svg');
+	--ZoomIcon				: url('/Assets/Images/SVG/MagnifyingGlassIcon.svg');
+	--QuestionaireIcon		: url('/Assets/Images/SVG/QuestionaireIcon.svg');
+	--SaveIcon				: url('/Assets/Images/SVG/SaveIcon.svg');
+	--TriangleIcon			: url('/Assets/Images/SVG/TriangleIcon.svg');
+	--UpdateIcon			: url('/Assets/Images/SVG/UpdateIcon.svg');
+}

@@ -1,0 +1,234 @@
+/* COMMON */
+.debug-module-data {
+	flex-direction: column;
+	padding: 5px;
+	/* justify-content: space-between; */
+}
+
+
+
+/* Experiment timeline */
+.debug-module-data-rows {
+	flex-direction: column;
+	justify-content: space-around;
+	height: 100%;
+}
+
+.debug-module-data-name {
+	font-size: 16px;
+	margin-bottom: 10px;
+}
+
+.debug-module-data-row {
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+.debug-module-data-row-label {
+	font-size: 12px;
+	-unity-font-style: normal;
+}
+
+.debug-module-data-row-value {
+	font-size: 12px;
+	-unity-font-style: bold;
+}
+
+
+/* Console */
+#debug-console-module-textbox {
+	-unity-text-align: upper-left;
+	padding: 5px;
+	font-size: 10px;
+	/* same as #info-module-textbox and #warnings-module-textbox in Experiment Body */
+}
+
+
+/* Info panels */
+#debug-body-info-panels-data {
+	flex-direction: row;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+}
+
+#debug-body-all-but-fps {
+	flex-direction: row;
+	margin: 0;
+	/* align-items: stretch; */ /* not sure in its purpose */
+}
+
+#debug-body-fps,
+#debug-body-devices,
+#debug-body-daemons,
+#debug-body-different {
+	background-color: var(--main-modules-color);
+	flex-direction: column;
+}
+
+#debug-different-info-submodule-data {
+	height: 85%;
+}
+#debug-different-info-submodule-buttons {
+	background-color: var(--main-window-color);
+	height: 15%;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	padding-top: 10px;
+	width: 100%;
+}
+.debug-different-info-submodule-button {
+	width: 50%;
+	height: 100%;
+	background-color: var(--main-buttons-color);
+	border-color: #565656;
+	border-width: 2px;
+	border-radius: 5px;
+	align-items: center;
+	justify-content: center;
+}
+#debug-test-btn-1 {
+	margin-right: 10px;
+}
+
+/* FPS */
+#debug-body-fps {}
+#debug-fps-data {
+	flex-direction: row;
+	justify-content: space-between;
+	height: 100%;
+	width: 100%;
+}
+#debug-fps-bar-side,
+#debug-fps-numbers-side {
+	flex-direction: column;
+	height: 100%;
+}
+#debug-fps-bar-side {
+	width: 10%;
+}
+#debug-fps-numbers-side {
+	justify-content: space-around;
+	width: 90%;
+}
+
+#debug-fps-numbers-side-current-fps {}
+#debug-fps-numbers-side-current-fps TextElement {
+	font-size: 80px;
+	-unity-font-style: bold;
+}
+#debug-fps-numbers-side-last-frame,
+#debug-fps-numbers-side-average-frame {
+	flex-direction: column;
+}
+
+#debug-current-fps-value {}
+.debug-fps-timing-value {
+	font-size: 20px;
+	-unity-font-style: bold;
+}
+.debug-fps-timing-label {
+	font-size: 12px;
+	-unity-font-style: normal;
+}
+
+/* Daemons */
+#number_of_running_daemons_label {
+	margin-left: 10px;
+	font-size: 12px;
+	-unity-font-style: normal;
+}
+#debug-daemons-activities {
+	width: 100%;
+	flex-grow: 1;
+	flex-direction: column;
+	padding: 3px;
+}
+#debug-daemons-activities-text {
+	-unity-font-style: normal;
+	-unity-text-align: middle-left;
+	text-overflow: ellipsis;
+}
+.debug-daemons-activitie {
+	flex-direction: row;
+	width: 100%;
+	margin-bottom: 3px;
+}
+.debug-daemons-activitie * {
+	flex-shrink: 0;
+}
+.debug-daemons-activity-icon {
+	width: 15px;
+	height: 15px;
+	margin: 0 2px;
+	align-items: center;
+	justify-content: center;
+}
+.debug-daemons-activity-icon .icon-color {
+	background-color: var(--main-images-color);
+}
+.debug-daemons-activity-icon.MessageReceived {
+	background-image: url('/Assets/Images/SVG/IncomingMessageIcon.svg');
+}
+.debug-daemons-activity-icon.MessageSent {
+	background-image: url('/Assets/Images/SVG/OutgoingMessageIcon.svg');
+	rotate: 45deg;
+}
+.debug-daemons-activity-icon.ConnectionEstablished {
+	/* todo */
+}
+.debug-daemons-activity-icon.ConnectionBroked {
+	/* todo */
+}
+
+.debug-daemons-activity-daemon {
+	font-size: 12px;
+	-unity-font-style: bold;
+	white-space: nowrap;
+	margin: 0 1px;
+}
+.debug-daemons-activity-message {
+	white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+	font-size: 12px;
+	-unity-font-style: normal;
+	flex-shrink: 1;	/* allows to shrink */
+}
+
+
+
+/*  */
+#debug-body-devices {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+}
+
+#debug-body-daemons {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+}
+
+#debug-body-different {
+	justify-content: space-between;
+}
+.debug-different-info-submodule-data-parameter-name {
+	-unity-font-style: normal;
+	font-size: 14px;
+}
+.debug-different-info-submodule-data-parameter-value {
+	-unity-font-style: normal;
+	font-size: 15px;
+}
+
+#debug-different-info-submodule-data-memory,
+#debug-different-info-submodule-data-gc,
+#debug-different-info-submodule-data-time {
+	width: 100%;
+	flex-direction: row;
+	justify-content: space-between;
+	padding: 0 5px;
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="debug-body-experiment-timeline-wrapper" class="wrapper">
+    <VisualElement name="debug-body-experiment-timeline-data" class="debug-module-data body-module">
+        <TextElement class="module-title" text="Experiment timeline"/>
+
+        <VisualElement class="debug-module-data-rows">
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Total time:"/>
+                <TextElement class="debug-module-data-row-value" name="experiment-timeline-data-total-time" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Status:"/>
+                <TextElement class="debug-module-data-row-value" name="experiment-timeline-data-status" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Total trials:"/>
+                <TextElement class="debug-module-data-row-value" name="experiment-timeline-data-total-trials" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Defective trials:"/>
+                <TextElement class="debug-module-data-row-value" name="experiment-timeline-data-defective-trials" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Dangerous trials:"/>
+                <TextElement class="debug-module-data-row-value" name="experiment-timeline-data-dangerous-trials" text=""/>
+            </VisualElement>
+        </VisualElement>        
+    </VisualElement>
+
+    <VisualElement name="debug-body-experiment-timeline-chart" class="debug-module-chart body-module">
+        <TextElement class="module-label" text="Last experiment timings"/>
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

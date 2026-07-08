@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="themes-palettes-module-template-wrapper" class="wrapper settings-module-template-wrapper">
+    <VisualElement class="settings-module-header">
+        <TextElement class="module-header-text" text="Themes palettes"/>
+    </VisualElement>
+
+    <VisualElement name="themes-palettes-module-window" class="settings-module-window">
+        <!-- <TextElement class="" text="test"/> -->
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

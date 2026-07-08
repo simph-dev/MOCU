@@ -1,0 +1,69 @@
+﻿/* COMMON */
+
+.device-box-panel-container {
+	flex-direction: column;
+	display: flex;
+	justify-content: space-between;
+
+	width: 70px;
+	height: 70px;
+}
+
+.device-box-panel-container .device-box-panel-info-section {
+	width: 50px;
+	height: 50px;
+	background-color: red;
+}
+
+.device-box-panel-container .device-box-panel-parameters-section {}
+
+/* PANEL MODE */
+
+.device-box-panel-container.panel-mode {
+	position: relative;
+	align-items: center;
+
+	width: auto;
+	height: auto;
+}
+
+.device-box-panel-container.panel-mode .device-box-panel-info-section {
+	width: 100px;
+	height: 100px;
+
+	background-color: cyan;
+}
+
+.device-box-panel-container.panel-mode .device-box-panel-parameters-section {
+	display: none;
+}
+
+/* PARAMS MODE */
+
+.device-box-panel-container.params-mode {
+	position: absolute;
+	align-items: flex-start;
+	margin: 0;
+
+	width: 100%;
+	height: 100%;
+
+	background-color: yellow;
+}
+
+.device-box-panel-container.params-mode .device-box-panel-info-section {
+	width: 100%;
+	height: 30px;
+
+	background-color: pink;
+}
+
+.device-box-panel-container.params-mode .device-box-panel-parameters-section {
+	display: flex;
+	flex-direction: column;
+
+	width: 100%;
+	flex-grow: 1;
+
+	background-color: violet;
+}

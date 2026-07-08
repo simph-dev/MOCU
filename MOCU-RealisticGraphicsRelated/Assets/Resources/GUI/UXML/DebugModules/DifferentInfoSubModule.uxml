@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="debug-different-info-submodule-template-wrapper" class="wrapper">
+    <TextElement class="module-title" text="Diff. info"/>
+
+    <VisualElement name="debug-different-info-submodule-data">
+        <VisualElement name="debug-different-info-submodule-data-memory">
+            <TextElement class="debug-different-info-submodule-data-parameter-name" text="Memory"/>
+            <TextElement class="debug-different-info-submodule-data-parameter-value" name="debug-memory-value" text="X"/>
+            <!-- <TextElement class="debug-different-info-submodule-data-parameter-units" text="MB"/> -->
+        </VisualElement>
+
+        <VisualElement name="debug-different-info-submodule-data-gc">
+            <TextElement class="debug-different-info-submodule-data-parameter-name" text="GC"/>
+            <TextElement class="debug-different-info-submodule-data-parameter-value" name="debug-gc-value" text="X"/>
+            <!-- <TextElement class="debug-different-info-submodule-data-parameter-units" text="MB"/> -->
+        </VisualElement>
+
+        <VisualElement name="debug-different-info-submodule-data-time">
+            <TextElement class="debug-different-info-submodule-data-parameter-name" text="Time working"/>
+            <TextElement class="debug-different-info-submodule-data-parameter-value" name="debug-time-working-value" text="X"/>
+            <!-- <TextElement class="debug-different-info-submodule-data-parameter-units" text="min"/> -->
+        </VisualElement>
+    </VisualElement>
+
+    <VisualElement name="debug-different-info-submodule-buttons">
+        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-1"><TextElement text="Engage Moog"/></VisualElement>
+        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-2"><TextElement text="Start Experiment"/></VisualElement>
+    </VisualElement>
+</VisualElement>
+
+    
+</UXML>

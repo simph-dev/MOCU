@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="debug-body-trial-wrapper" class="wrapper">
+    <VisualElement name="debug-body-trial-data" class="debug-module-data body-module">
+        <TextElement class="module-title" text="Last trial data"/>
+
+        <VisualElement class="debug-module-data-rows">
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Average Unity fps:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-average-unity-fps" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Total time - Moog:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-total-time-moog" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Total time - Oculus:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-total-time-oculus" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Status:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-trial-status" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Answer get in:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-answer-get-in" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Right answer:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-right-answer" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Received answer:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-received-answer" text=""/>
+            </VisualElement>
+
+            <VisualElement class="debug-module-data-row">
+                <TextElement class="debug-module-data-row-label" text="Answer is correct:"/>
+                <TextElement class="debug-module-data-row-value" name="trial-data-received-answer-is-correct" text=""/>
+            </VisualElement>
+        </VisualElement>
+    </VisualElement>
+
+    <VisualElement name="debug-body-trial-chart" class="debug-module-chart body-module"></VisualElement>
+</VisualElement>
+
+    
+</UXML>

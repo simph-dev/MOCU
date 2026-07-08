@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PortFinder")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d735dc300d0897908c30b5169594b0a9ea87111f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b38ddd3a6e3323cecf32cf8bfad9499a020f1a19")]
 [assembly: System.Reflection.AssemblyProductAttribute("PortFinder")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PortFinder")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xmlns:custom="CustomUxmlElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+
+
+
+<VisualElement name="main-header-template-wrapper">
+
+    <!-- TABS -->
+    <VisualElement name="tabs">
+        
+        <!-- Experiment : ExperimentTabIcon.svg -->
+        <VisualElement class="tab" name="experiment-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" text="Experiment"/>
+        </VisualElement>
+
+        <!-- Debug : DebugTabIcon.svg -->
+        <VisualElement class="tab" name="debug-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" name="debug-tab-text" text="Debug"/>
+        </VisualElement>
+
+        <!-- Data : DataTabIcon.svg -->
+        <VisualElement class="tab" name="data-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" name="data-tab-text" text="Data"/>
+        </VisualElement>
+
+        <!-- Info : InfoTabIcon.svg -->
+        <VisualElement class="tab" name="info-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" name="info-tab-text" text="Info"/>
+        </VisualElement>
+
+        <!-- Cameras : CamerasTabIcon.svg -->
+        <VisualElement class="tab" name="cameras-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" name="cameras-tab-text" text="Cameras"/>
+        </VisualElement>
+
+        <!-- Settings : SettingsTabIcon.svg -->
+        <VisualElement class="tab" name="settings-tab">
+            <custom:CustomImage class="tab-icon"/>
+            <TextElement class="tab-text" name="settings-tab-text" text="Settings"/>
+        </VisualElement>
+
+    </VisualElement>
+
+
+    <!-- EXIT / MINIMIZE BTNS -->
+    <VisualElement name="exit-minimize-app-btns">
+
+        <!-- Minimize : MinimizeGameIcon.svg -->
+        <VisualElement class="close-minimize-btn" name="minimize-game-btn">
+            <VisualElement class="close_minimize_btns-icon-shape icon-shape" style="background-image: url('/Assets/Images/SVG/MinimizeGameIcon.svg');">
+                <VisualElement class="close_minimize_btns-icon-color icon-color"></VisualElement>
+            </VisualElement>
+        </VisualElement>
+
+        <!-- Close : 
+        
+        .svg -->
+        <VisualElement class="close-minimize-btn" name="close-game-btn">
+            <VisualElement class="close_minimize_btns-icon-shape icon-shape" style="background-image: url('/Assets/Images/SVG/CloseIcon.svg');">
+                <VisualElement class="close_minimize_btns-icon-color icon-color"></VisualElement>
+            </VisualElement>
+        </VisualElement>
+
+    </VisualElement>
+
+</VisualElement>
+    
+</UXML>
+
+
+<!-- COMMENTS
+
+<Template src="/Assets/GUI/UXML/HeaderTab.uxml" name="HeaderTab-template"/>
+
+<Instance template="HeaderTab-template" name="experiment-tab-test">
+    <AttributeOverrides element-name="tab-background"   style="background-image: url('/Assets/Images/SVG/ExperimentTabIcon.svg');" />
+    <AttributeOverrides element-name="tab-text"         text="Experiment test" />
+</Instance> 
+
+-->

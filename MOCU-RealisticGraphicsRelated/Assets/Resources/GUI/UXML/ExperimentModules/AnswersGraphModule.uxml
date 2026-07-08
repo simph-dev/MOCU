@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="UnityEngine.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+
+
+<VisualElement name="answers-graph-module-template-wrapper" class="wrapper">
+    <VisualElement name="answers-graph-module-window"></VisualElement>
+
+    <TextElement class="module-label" text="Answers graph"/>
+</VisualElement>
+
+
+</UXML>
