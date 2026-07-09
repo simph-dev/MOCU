@@ -23,7 +23,7 @@ namespace RaceExperiment
         public DofParameters CameraStartPosition            { get; set; } = new DofParameters { Surge = 0, Heave = 1.7f, Sway = 0 };
         public DofParameters MoogStartPosition              { get; set; } = new DofParameters { Surge = -0.12f, Heave = -0.22f, Sway = 0 };
         public ExperimentStimulusType StimulusType  { get; set; } = ExperimentStimulusType.None;
-        public float StartDistanceToTarget                  { get; set; } = 0.66f;
+        public float StartDistanceToTarget                  { get; set; } = 2.5f;
         public TimeSpan DelayBetweenMoogAndVr               { get; set; } = TimeSpan.FromMilliseconds(100); // Moog starts with delay
         public float MoogMovementDurationCorrectionFactor   { get; set; } = 0.8f;   // It takes to Moog more time (1 / 1.25) ~1100ms (-100 from prev param)
 

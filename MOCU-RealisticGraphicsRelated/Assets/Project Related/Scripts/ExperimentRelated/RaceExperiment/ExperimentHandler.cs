@@ -37,7 +37,13 @@ namespace RaceExperiment
 
         public override void ManagedAwake()
         {
-            _parameters = new Parameters { TrialsNumber = 120, StimulusType = ExperimentStimulusType.VisualVisual, DistanceMultiplier = 2.5f };
+            _parameters = new Parameters {
+                TrialsNumber = 120,
+                ReferenceDistance = 0,
+                StimulusType = ExperimentStimulusType.VisualVisual,
+                DistanceMultiplier = 2.5f,
+                BackwardMovementDuration = TimeSpan.FromSeconds(1),
+            };
             _experiment = new Experiment(_parameters);
 
             _debugTabHandler = GetComponent<DebugTabHandler>();
