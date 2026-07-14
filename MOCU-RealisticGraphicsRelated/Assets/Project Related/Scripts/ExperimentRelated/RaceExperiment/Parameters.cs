@@ -31,6 +31,7 @@ namespace RaceExperiment
         public TimeSpan SecondMovementDuration              { get; set; } = TimeSpan.FromSeconds(1);
         public TimeSpan BackwardMovementDuration            { get; set; } = TimeSpan.FromSeconds(3);
         public TimeSpan PauseBetweenIntervalsDuration       { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan PauseBetweenSeeingAndMovingDuration { get; set; } = TimeSpan.FromSeconds(0);
         public TimeSpan DelayBeforeStartSound               { get; set; } = TimeSpan.FromSeconds(1.5);
         public TimeSpan DelayAfterStartSignal               { get; set; } = TimeSpan.FromSeconds(0.5);
         public TimeSpan TimeToAnswer                        { get; set; } = TimeSpan.FromSeconds(2);

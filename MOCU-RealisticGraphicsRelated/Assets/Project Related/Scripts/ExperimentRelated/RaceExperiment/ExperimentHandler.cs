@@ -290,7 +290,7 @@ namespace RaceExperiment
             else
                 Debug.Log("You shouldn't see that message");
 
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds((float)_parameters.PauseBetweenSeeingAndMovingDuration.TotalSeconds);
 
             if (_parameters.StimulusType == ExperimentStimulusType.CombinedCombined)
             {
@@ -366,7 +366,7 @@ namespace RaceExperiment
             else
                 Debug.Log("You shouldn't see that message");
 
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds((float)_parameters.PauseBetweenSeeingAndMovingDuration.TotalSeconds);
 
             if (_parameters.StimulusType == ExperimentStimulusType.CombinedCombined)
             {
