@@ -2,6 +2,10 @@
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Rendering;
 
+// Required by [SerializeReference], which is how CustomPassVolume stores its passes.
+// Without it the pass's fields - Target Texture in particular - are not reliably
+// persisted across scene reloads and domain reloads.
+[System.Serializable]
 public class EyeMirror : CustomPass
 {
     public RenderTexture targetTexture;

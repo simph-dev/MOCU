@@ -10,7 +10,7 @@
 
 using ChartsModule;
 using MoogModule;
-using RaceExperiment;
+using RaceExperiment;      // TemporalSound lives here and is shared
 using Temporal;
 using UnityEngine;
 
@@ -74,7 +74,12 @@ public class Bootstrap : MonoBehaviour
             //EnsureComponent<FixedUpdateMonitor>(),
 
             // SIDE EXPERIMENTS
-            EnsureComponent<ExperimentHandler>(),
+            // Only one experiment handler at a time: they share the same UI buttons
+            // and the same InputHandler events, so two live handlers would both react.
+            // Both classes are called ExperimentHandler, hence the full names.
+            // GeneralScript also resolves one of them - keep its `using` in step.
+            //EnsureComponent<RaceExperiment.ExperimentHandler>(),
+            EnsureComponent<MirrorExperiment.ExperimentHandler>(),
             EnsureComponent<TemporalSound>(_gameObject_audio),
             //EnsureComponent<MeshisHandler>(),
             //EnsureComponent<TemporalResponseHandler>(),

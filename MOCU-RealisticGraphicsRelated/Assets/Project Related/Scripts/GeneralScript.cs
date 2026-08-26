@@ -1,5 +1,5 @@
-﻿using MoogModule;
-using RaceExperiment;
+﻿using MirrorExperiment;
+using MoogModule;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.XR;
@@ -67,6 +67,11 @@ public class GeneralScript : ManagedMonoBehaviour
 
         Debug.Log("Шлем готов!");
 
-        GetComponent<ExperimentHandler>().CalibrateHeadRotation();
+        // Full calibration, not rotation-only: CalibrateHeadRotation deliberately
+        // preserves the current world eye position, so on its own it leaves the eye
+        // at whatever height the headset started at instead of bringing it to
+        // CameraStartPosition. Harmless while that was 1.7 and the eye already sat
+        // there; visible now that it is zero.
+        GetComponent<ExperimentHandler>().CalibrateHead();
     }
 }

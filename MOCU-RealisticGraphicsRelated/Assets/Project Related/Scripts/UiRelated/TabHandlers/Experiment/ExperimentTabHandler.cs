@@ -16,11 +16,15 @@ public class ExperimentTabHandler : ManagedMonoBehaviour
     public event Action<ClickEvent> ParkBtnClicked;
     public event Action<ClickEvent> StartExperimentBtnClicked;
     public event Action<ClickEvent> StoptExperimentBtnClicked;
+    public event Action<ClickEvent> PauseExperimentBtnClicked;
+    public event Action<ClickEvent> ResumeExperimentBtnClicked;
 
     private VisualElement _engageBtn;
     private VisualElement _parkBtn;
     private VisualElement _startExperimentBtn;
     private VisualElement _stoptExperimentBtn;
+    private VisualElement _pauseExperimentBtn;
+    private VisualElement _resumeExperimentBtn;
 
 
     public override void ManagedAwake()
@@ -38,11 +42,15 @@ public class ExperimentTabHandler : ManagedMonoBehaviour
         _parkBtn = _uiReference.elements.experimentTab.controlsModule.parkMoogBtn;
         _startExperimentBtn = _uiReference.elements.experimentTab.controlsModule.startExperimentBtn;
         _stoptExperimentBtn = _uiReference.elements.experimentTab.controlsModule.stopExperimentBtn;
+        _pauseExperimentBtn = _uiReference.elements.experimentTab.controlsModule.pauseExperimentBtn;
+        _resumeExperimentBtn = _uiReference.elements.experimentTab.controlsModule.resumeExperimentBtn;
 
         _engageBtn.RegisterCallback<ClickEvent>(eventObj => { EngageBtnClicked?.Invoke(eventObj); });
         _parkBtn.RegisterCallback<ClickEvent>(eventObj => { ParkBtnClicked?.Invoke(eventObj); });
         _startExperimentBtn.RegisterCallback<ClickEvent>(eventObj => { StartExperimentBtnClicked?.Invoke(eventObj); });
         _stoptExperimentBtn.RegisterCallback<ClickEvent>(eventObj => { StoptExperimentBtnClicked?.Invoke(eventObj); });
+        _pauseExperimentBtn.RegisterCallback<ClickEvent>(eventObj => { PauseExperimentBtnClicked?.Invoke(eventObj); });
+        _resumeExperimentBtn.RegisterCallback<ClickEvent>(eventObj => { ResumeExperimentBtnClicked?.Invoke(eventObj); });
 
         GlobalExceptionHandler.OnErrorCaught += (message) => PrintToWarnings(message);
 

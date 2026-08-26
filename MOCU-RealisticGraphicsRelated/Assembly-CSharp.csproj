@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\TrajectoryMath.cs" />
     <Compile Include="Assets\Project Related\Scripts\StatusesRelated\StatusesHandler.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\StarField.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DTOs\UnifiedResponseFrom_Server.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Profile\CDF\TrajectoryProfileSettings_CDF.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\UiHandler.cs" />
@@ -76,11 +77,14 @@
     <Compile Include="Assets\Project Related\Scripts\StatusesRelated\ModulesSubStatuses\ControllerDevice_SubStatuses.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\TabHandlers\Debug\DebugTabHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\Experiment.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\CorrectAnswerReference.cs" />
     <Compile Include="Assets\SampleSceneAssets\Controllers\ThirdPersonController\Scripts\ThirdPersonController.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\ExperimentHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DTOs\UnifiedDataTransferObject.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zUnityDaemonsCommon (depricated)\DebugMessageType.cs" />
     <Compile Include="Assets\Project Related\Scripts\StatusesRelated\IModuleStatusHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\CommonPart\SeriesData.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\SessionWriter.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\InputHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\DisableXRForCamera.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zAudioControl (depricated)\AudioCommunicationModel.cs" />
@@ -98,12 +102,14 @@
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\DaemonErrorReport.cs" />
     <Compile Include="Assets\For tests\Moog Movement\JoystickForMoogTest.cs" />
     <Compile Include="Assets\Resources\GUI\CustomElements\Slider\CustomSlider.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\Parameters.cs" />
     <Compile Include="Assets\Project Related\Scripts\GlobalExceptionHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\User.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Type\Linear\TrajectoryGenerator_Linear.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\InterprocessCommunicator\InterprocessCommunicator_Server.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\InterprocessCommunicator\InterprocessCommunicator_UnityServer.cs" />
     <Compile Include="Assets\For tests\StarsGenerator.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\TrialState.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\Ethnicity.cs" />
     <Compile Include="Assets\SampleSceneAssets\Controllers\FirstPersonController\FirstPersonController.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\CommonPart\AudioDeviceConnectionStatus.cs" />
@@ -143,8 +149,10 @@
     <Compile Include="Assets\Project Related\Scripts\UiRelated\TabHandlers\Settings\DevicesModule\DeviceBoxPanel.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\DaemonPart\IDaemonLogic.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Type\TrajectoryTypeSettings.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\ParametersFile.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\TemporalResponseHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\DataRelated\ConfigHandler.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\HeadingTransform.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\IntervalRole.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\ExperimentHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDaemonsOnlyCommon (depricated)\DaemonsUtilities.cs" />
@@ -168,9 +176,11 @@
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\CommonPart\ChartsDataTransferObject.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\CommuicationModel\MachineSettings.cs" />
     <Compile Include="Assets\For tests\ForTests.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\ConditionSettings.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\TabHandlers\Debug\DifferentInfo_DebugUiModuleHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\CommonPart\AudioDeviceData.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\InputSystemTests.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\Experiment.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\RaceScene.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\TabHandlers\Settings\DevicesModule\DeviceBoxPanel_Microphones.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Type\TrajectoryType.cs" />
@@ -184,6 +194,7 @@
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\TrialAnswer.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\UnityPart\AudioHandler_API.cs" />
     <Compile Include="Assets\SampleSceneAssets\Controllers\Common\InputSystem\StarterAssetsInputs.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\Trial.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\DofParameters.cs" />
     <Compile Include="Assets\For tests\FixedUpdateMonitor.cs" />
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\CommonPart\PointData.cs" />
@@ -193,6 +204,7 @@
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\DaemonPart\DaemonSupervisor.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\MoogRealTimeState.cs" />
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\Cedrus\XID_ProtocolParser.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\TrialAnswer.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\ActionMap + Actions\enum_DPadAction.cs" />
     <Compile Include="Assets\Project Related\Scripts\UiRelated\TabHandlers\Experiment\ExperimentTabHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\VrRelated\VrHeadset_Statuses.cs" />
@@ -209,6 +221,7 @@
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\_Depricated\AudioDevice.cs" />
     <Compile Include="Assets\Project Related\Shaders\ShadePosUpdater.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Profile\CDF\TrajectoryProfile_CDF.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\StarFieldSettings.cs" />
     <Compile Include="Assets\Resources\GUI\CustomElements\SettingsDeviceBox\SettingsDeviceBox.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\UnityPart\AudioDaemon_API.cs" />
     <Compile Include="Assets\Project Related\Scripts\MathRelated\MathUtils.cs" />
