@@ -5,23 +5,9 @@ using UnityEngine.UIElements;
 
 namespace CustomUxmlElements
 {
-    public class SettingsDeviceBox : VisualElement
+    [UxmlElement]   // to be able use it from UXML
+    public partial class SettingsDeviceBox : VisualElement
     {
-        public new class UxmlFactory : UxmlFactory<SettingsDeviceBox, UxmlTraits> { }
-
-        public new class UxmlTraits : VisualElement.UxmlTraits
-        {
-            private readonly UxmlStringAttributeDescription _textAttribute = new UxmlStringAttributeDescription { name = "text", defaultValue = "" };
-
-            public override void Init(VisualElement ve, IUxmlAttributes bag, CreationContext cc)
-            {
-                base.Init(ve, bag, cc);
-
-                var settingsDeviceBox = (SettingsDeviceBox)ve;
-                settingsDeviceBox.DeviceAlias = _textAttribute.GetValueFromBag(bag, cc);
-            }
-        }
-        
 
         private SettingsDeviceBox _container;
         private CustomSlider _slider;
@@ -49,6 +35,7 @@ namespace CustomUxmlElements
             _container.Add(_label);
         }
 
+        [UxmlAttribute("text")]
         public string DeviceAlias
         {
             get => _label.text;

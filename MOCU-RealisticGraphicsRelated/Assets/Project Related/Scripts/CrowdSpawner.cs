@@ -68,13 +68,13 @@ public class CrowdSpawner : MonoBehaviour
     private List<CharacterInstance> _pool = new List<CharacterInstance>();
     private List<CharacterInstance> _activeCrowd = new List<CharacterInstance>();
     private List<Vector2Int> _physicallyValidCells = new List<Vector2Int>();
-    private HashSet<int> _registeredPrefabIDs = new HashSet<int>();
+    private HashSet<GameObject> _registeredPrefabs = new HashSet<GameObject>();
     private Camera _warmupCamera;
 
     System.Collections.IEnumerator Start()
     {
         if (crowdContainer == null) crowdContainer = new GameObject("Crowd_Pool").transform;
-        _registeredPrefabIDs.Clear();
+        _registeredPrefabs.Clear();
 
         // 1. Слой и шейдеры
         int warmupLayer = 6;
@@ -147,9 +147,8 @@ public class CrowdSpawner : MonoBehaviour
         foreach (var prefab in prefabs)
         {
             if (prefab == null) continue;
-            int id = prefab.GetInstanceID();
-            if (_registeredPrefabIDs.Contains(id)) continue;
-            _registeredPrefabIDs.Add(id);
+            // Сам префаб, а не его ID: GetInstanceID в 6000.6 запрещён, а ссылка работает в любой версии
+            if (!_registeredPrefabs.Add(prefab)) continue;
             GameObject obj = Instantiate(prefab, spawnPos, prefab.transform.rotation, crowdContainer);
             SetLayerRecursively(obj, layer);
             _pool.Add(new CharacterInstance { GameObject = obj, Transform = obj.transform, Race = race });

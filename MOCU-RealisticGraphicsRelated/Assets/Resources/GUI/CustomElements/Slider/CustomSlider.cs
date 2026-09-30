@@ -6,10 +6,9 @@ namespace CustomUxmlElements
 {
     // TODO: remake it to normal one later
     // add GET and SET for easier data picking from code
-    public class CustomSlider : Slider
+    [UxmlElement]   // Slider's own UXML attributes are inherited
+    public partial class CustomSlider : Slider
     {
-        public new class UxmlFactory : UxmlFactory<CustomSlider, Slider.UxmlTraits> { }
-
         public CustomSlider()
         {
             var dragger = this.Q<VisualElement>("unity-dragger");

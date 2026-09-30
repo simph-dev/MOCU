@@ -8,10 +8,9 @@ using UnityEngine.UIElements;
 
 namespace CustomUxmlElements
 {
-    public class DeviceBoxPanel_Microphones : DeviceBoxPanel
+    [UxmlElement]
+    public partial class DeviceBoxPanel_Microphones : DeviceBoxPanel
     {
-        public new class UxmlFactory : UxmlFactory<DeviceBoxPanel_Microphones, UxmlTraits> { }
-
         public DeviceBoxPanel_Microphones()
         {
             this.Label = "Microphones";

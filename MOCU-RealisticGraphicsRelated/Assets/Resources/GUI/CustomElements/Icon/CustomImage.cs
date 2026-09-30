@@ -3,10 +3,9 @@
 
 namespace CustomUxmlElements
 {
-    public class CustomImage : VisualElement
+    [UxmlElement]
+    public partial class CustomImage : VisualElement
     {
-        public new class UxmlFactory : UxmlFactory<CustomImage, UxmlTraits> { }
-
         private CustomImage _container;
         private VisualElement _imageShape;
         private VisualElement _imageColor;

@@ -7,10 +7,9 @@ using UnityEngine.UIElements;
 
 namespace CustomUxmlElements
 {
-    public class DeviceBoxPanel : VisualElement
+    [UxmlElement]   // to be able use it from UXML
+    public partial class DeviceBoxPanel : VisualElement
     {
-        public new class UxmlFactory : UxmlFactory<DeviceBoxPanel, UxmlTraits> { }  // to be able use it from UXML
-
         private readonly DeviceBoxPanel _container;
         private readonly VisualElement _infoSection;
         private readonly VisualElement _parametersSection;
