@@ -3,6 +3,7 @@ using System.Collections;
 
 using MoogModule;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 
 // TemporalSound lives in the RaceExperiment namespace but is a generic sound
 // player, so it is aliased in rather than shared through a `using` that would
@@ -41,6 +42,28 @@ namespace MirrorExperiment
 
         private Transform _cameras;
         private Transform _vrCamera;
+
+        /// Everything this experiment shows is built in code, under this root of its
+        /// own - the star field, the fixation point, the mirror and the volume
+        /// feeding the operator's view. The scene holds none of it, so none of it
+        /// can be lost from the scene or left disagreeing with the config.
+        private Transform _root;
+
+        /// Null until the config first asks for it, so a run without a mirror has
+        /// no rear camera costing a render every frame.
+        private RearViewMirror _mirror;
+
+        /// Built in code at startup, like the mirror, and switched off rather than
+        /// destroyed when the config says so.
+        private FixationPoint _fixationPoint;
+
+        /// Where the operator's "Unity view" panel gets its picture from: the
+        /// EyeMirror pass copies every headset frame into this texture.
+        private const string OperatorViewTexture = "GUI/UnityViewFromUi";
+
+        /// HDRP Unlit, white, Double-Sided and GPU Instancing on. In
+        /// MirrorExperiment/Resources, so a build includes it without the scene.
+        private const string StarMaterialResource = "StarMaterial";
 
         private Vector3 _manualOffset = Vector3.zero;
         private float _yRotationOffset = 0f;
@@ -81,10 +104,6 @@ namespace MirrorExperiment
             _moogHandler = GetComponent<MoogHandler>();
             _input = GetComponent<InputHandler>();
             _sound = GameObject.Find("Audio").GetComponent<TemporalSound>();
-            _starField = FindFirstObjectByType<StarField>(FindObjectsInactive.Include);
-
-            if (_starField == null)
-                Debug.LogError("MirrorExperiment: no StarField in the scene. Add the StarField component to a GameObject and assign its material.");
 
             _trialState = TrialState.None;
             _experimentState = ExperimentState.None;
@@ -94,6 +113,25 @@ namespace MirrorExperiment
 
             _cameras = GameObject.Find("Cameras").transform;
             _vrCamera = _cameras.Find("VrHelmetCamera");
+
+            _root = new GameObject("MirrorExperiment").transform;
+
+            _starField = CreateStarField();
+
+            // Already here, not only on Start, so that the AlwaysVisible preview
+            // shows the cloud the config describes rather than the Inspector's.
+            _starField?.Configure(_parameters.StarField);
+
+            CreateEyeMirrorVolume();
+
+            _fixationPoint = CreateChild("FixationPoint").AddComponent<FixationPoint>();
+
+            // Already here, not only on Start, so they can be looked at in the
+            // headset before a run begins. Start reports a bad setting to the
+            // researcher; this early there is only the log.
+            foreach (string problem in new[] { ConfigureMirror(), ConfigureFixationPoint() })
+                if (problem != null)
+                    Debug.LogError($"MirrorExperiment: {problem}");
 
             _input.GotAnswer_Left += HandleInput_Left;
             _input.GotAnswer_Right += HandleInput_Right;
@@ -130,6 +168,11 @@ namespace MirrorExperiment
         /// Puts the camera rig where the current offset and calibration say it should
         /// be. Split out so the calibration methods can re-apply the pose without
         /// going through ManagedUpdate and dragging the UI refresh along with it.
+        ///
+        /// Also moves what is fixed to the car - the mirror, the clear zone round the
+        /// head and, unless it is set to follow the head, the fixation point. They
+        /// go where the calibrated eye goes, not where the head is, so they follow
+        /// the stimulus trajectory and no head movement.
         private void ApplyCameraPose()
         {
             Vector3 basePosition = new Vector3
@@ -141,6 +184,14 @@ namespace MirrorExperiment
 
             _cameras.rotation = Quaternion.Euler(0, _yRotationOffset, 0);
             _cameras.position = basePosition + _manualOffset;
+
+            if (_mirror != null)
+                _mirror.SetAnchor(basePosition);
+
+            if (_fixationPoint != null)
+                _fixationPoint.SetCarAnchor(basePosition);
+
+            _starField?.SetClearZoneCenter(basePosition);
         }
 
         // ..........................................................
@@ -246,6 +297,106 @@ namespace MirrorExperiment
             }
         }
 
+        /// Builds the mirror the first time the config asks for one, and from then
+        /// on re-applies the config to it - which is also what switches it off.
+        /// Returns what is wrong with the mirror settings, or null.
+        private string ConfigureMirror()
+        {
+            if (_mirror == null)
+            {
+                if (!_parameters.Mirror.Enabled || _starField == null)
+                    return null;
+
+                _mirror = CreateChild("RearViewMirror").AddComponent<RearViewMirror>();
+            }
+
+            // The stars' material and layer, because the screen has to be visible
+            // to exactly the cameras the stars are visible to.
+            _mirror.Configure(
+                _parameters.Mirror,
+                _vrCamera.GetComponent<Camera>(),
+                _starField.StarMaterial,
+                _starField.gameObject.layer,
+                out string problem);
+
+            return problem;
+        }
+
+        /// Re-applies the config to the fixation point, which is also what switches
+        /// it off. Returns what is wrong with its settings, or null.
+        private string ConfigureFixationPoint()
+        {
+            // The stars' layer where there are stars, for the same reason as the
+            // mirror's: visible to exactly the cameras the stars are visible to.
+            int layer = _starField != null ? _starField.gameObject.layer : _vrCamera.gameObject.layer;
+
+            _fixationPoint.Configure(
+                _parameters.FixationPoint,
+                _parameters.Mirror,
+                _vrCamera,
+                layer,
+                out string problem);
+
+            return problem;
+        }
+
+        /// The volume that runs EyeMirror, which copies every headset frame into
+        /// the operator's "Unity view" panel. Built here rather than kept in the
+        /// scene: a pass saved in a scene is dropped if the scene is ever loaded
+        /// while its class does not compile, and that has already happened once.
+        private void CreateEyeMirrorVolume()
+        {
+            var target = Resources.Load<RenderTexture>(OperatorViewTexture);
+
+            if (target == null)
+            {
+                Debug.LogError($"MirrorExperiment: no {OperatorViewTexture} render texture in Resources - the operator's view of the headset will stay blank");
+                return;
+            }
+
+            var volume = CreateChild("EyeMirrorVolume").AddComponent<CustomPassVolume>();
+            volume.isGlobal = true;
+            volume.injectionPoint = CustomPassInjectionPoint.AfterPostProcess;
+            volume.AddPassOfType<EyeMirror>().targetTexture = target;
+        }
+
+        /// The star cloud, drawn on the headset camera's own layer. The Inspector's
+        /// debug toggles - AlwaysVisible, PreviewCoherence - are still there on the
+        /// object while the app runs, and reset with every Play, so a preview
+        /// cannot be left switched on into a real session.
+        ///
+        /// Null if the material is missing. There is then no optic flow at all, and
+        /// everything that uses the star field already copes with its absence.
+        private StarField CreateStarField()
+        {
+            var material = Resources.Load<Material>(StarMaterialResource);
+
+            if (material == null)
+            {
+                Debug.LogError($"MirrorExperiment: star material \"{StarMaterialResource}\" not found in any Resources folder - no stars will be drawn");
+                return null;
+            }
+
+            var stars = CreateChild("Stars");
+            stars.layer = _vrCamera.gameObject.layer;
+
+            if ((_vrCamera.GetComponent<Camera>().cullingMask & (1 << stars.layer)) == 0)
+                Debug.LogWarning($"MirrorExperiment: the headset camera does not render its own layer {LayerMask.LayerToName(stars.layer)} - the stars will not be seen");
+
+            var starField = stars.AddComponent<StarField>();
+            starField.StarMaterial = material;
+
+            return starField;
+        }
+
+        /// A new, empty object under the experiment's own root.
+        private GameObject CreateChild(string name)
+        {
+            var child = new GameObject(name);
+            child.transform.SetParent(_root, false);
+            return child;
+        }
+
         private void StartExperiment()
         {
             // Paused counts as running. Starting from here would throw away the
@@ -264,6 +415,14 @@ namespace MirrorExperiment
             if (_configError != null)
             {
                 _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{_configError}\n");
+                return;
+            }
+
+            string sceneProblem = ConfigureMirror() ?? ConfigureFixationPoint();
+
+            if (sceneProblem != null)
+            {
+                _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{sceneProblem}\n");
                 return;
             }
 
@@ -726,6 +885,7 @@ namespace MirrorExperiment
                 $"trial state: {_trialState}\n" +
                 $"experiment state: {_experimentState}\n" +
                 $"white noise: {_sound?.GetNoiseStatus}\n" +
+                $"mirror: {(!_parameters.Mirror.Enabled ? "off" : _parameters.Mirror.FlipHorizontally ? "on, flipped" : "on, not flipped")}\n" +
                 $"star noise: {_parameters.NoiseUpdateHz:F0} Hz asked / {(_starField != null ? _starField.MeasuredNoiseHz.ToString("F1") : "-")} Hz measured";
 
             _experimentTabHandler?.PrintToInfo(info, true);

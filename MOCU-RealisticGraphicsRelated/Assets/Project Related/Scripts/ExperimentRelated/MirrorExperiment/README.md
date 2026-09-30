@@ -188,7 +188,7 @@ PhysicalVisualHeading       where the optic flow actually goes
 PhysicalVestibularHeading   where the platform actually carries you
 ```
 
-Worked example — `Heading = +16`, `Δ = +6`, default transforms (visual 0°,
+Worked example — `Heading = +16`, `Δ = +6`, transforms without the swap (visual 0°,
 vestibular 180°):
 
 ```
@@ -215,13 +215,15 @@ Angle convention: `Surge = D·cos(θ)`, `Sway = D·sin(θ)`. So 0° is straight 
 | Visual | Vestibular | Result |
 |---|---|---|
 | 0 | 0 | plain heading discrimination, as in the paper |
-| 0 | 180 | **the mirror run — the default here** |
+| 0 | 180 | the mirror run without a mirror: flow forward, platform back |
 | 180 | 0 | reversed mirror: visually backward, physically forward |
+| 180 + swap | 180 + swap | **the default:** camera and platform together, backward, for the rear-view mirror |
 
 The flip exists because reversing is ambiguous. A plain 180° rotation reverses the
 whole velocity vector, so a nominal heading to the right carries you back **and to
 the left**. `SwapLeftRight` gets you back-and-to-the-right instead. Both readings
-are defensible; the default is the plain rotation.
+are defensible. The default is the swap, on both channels: a nominal heading to the
+right is back-right, which a real mirror shows as right — see *Rear-view mirror*.
 
 Rotations other than 0 and 180 are geometrically possible but probably meaningless:
 Δ=±6 was chosen because it is well inside the range where cues still fuse, and a
@@ -243,6 +245,145 @@ for all three references.
 Under `Vestibular` scoring the correct answer flips relative to nominal at headings
 below Δ/2, since the vestibular heading crosses zero there. That is the point of the
 mode, not a bug, but it looks startling in the logs.
+
+---
+
+## Rear-view mirror
+
+`Parameters.Mirror`, off by default. Without it the "mirror" is only a relation
+between the two cues: the flow goes forward, the platform goes backward. With it the
+scene can be physically truthful. The camera travels exactly where the platform does
+(`VisualTransform` equal to `VestibularTransform`), so whatever is seen directly moves
+with the body; the mirror looks backward, and there the same motion shows as flow
+expanding — forward, as in a car's mirror when reversing. The reversal comes from the
+mirror itself. No transform has to supply it.
+
+A second camera sits at the eye looking straight back and renders into a texture;
+the texture is shown on a flat screen in front of the participant. Camera, texture
+and screen are all built in code from the config (`RearViewMirror.cs`). Nothing is
+added to the scene.
+
+Switching it on changes nothing else. In particular **the cloud stays where
+`Parameters.StarField` puts it**, and the mirror only shows the part of it that lies
+behind the participant. So place it with the cloud settings:
+
+```
+behind only           DistanceToCloudCenter = -0.66
+around the head       DistanceToCloudCenter = 0,  VolumeDepth = 2.4
+                      seen receding directly and expanding in the mirror
+```
+
+Density is per cubic meter, so a bigger cloud means more stars, not sparser ones.
+
+The screen is an object in the scene like any other, so stars closer to the eye than
+the screen would be drawn in front of it. `StarField.ClearRadius` prevents that: no
+star is drawn within that distance of the eye's calibrated place. The zone is the
+inside of a car — the mirror hangs within it, everything that moves is outside — and,
+like the mirror, it travels with the stimulus trajectory and not with the head. Keep
+it larger than `Mirror.Distance`.
+
+- It acts as a spherical near clip. The cloud stays uniform in the world and the zone
+  is only a hole moving through it: a star disappears as the zone reaches it and
+  reappears once the zone has passed. Stars in the zone still take part in the noise.
+- The nearest stars have the fastest flow, so the radius changes the stimulus.
+- The cloud has to reach well past the radius. The default cloud is only 1.3 m wide,
+  and a 0.8 m zone round the head would swallow all of it except two caps, ahead
+  and behind.
+
+```
+around the head, with a cabin    DistanceToCloudCenter = 0
+                                 VolumeWidth = VolumeHeight = VolumeDepth = 3
+                                 ClearRadius = 0.8
+                                 3 x 3 x 3 m at 1250 per m^3 = 33750 stars
+```
+
+### Which way is left
+
+A mirror swaps left and right, and the task is a left/right judgement, so this is
+not a detail. For a nominal heading **to the right**, with the camera travelling
+backward (`VisualTransform.Rotation` at 180):
+
+| `VisualTransform.SwapLeftRight` | Camera travels | `Mirror.FlipHorizontally` | Screen shows |
+|---|---|---|---|
+| false | back-left | true | forward-left |
+| false | back-left | false | forward-right |
+| true | back-right | true | forward-right |
+| true | back-right | false | forward-left |
+
+- **The screen shows the nominal visual heading when the two flags are equal.** Only
+  then does `Nominal` scoring grade what the participant sees.
+- `FlipHorizontally: true` is what glass does: reversing back-right, the scene in a
+  real mirror expands around a point to the right. `false` is what you would see had
+  you turned round.
+- `Visual` scoring grades the side the *camera travels* to, which is the side shown
+  on the screen only when the picture is flipped. Neither the scoring nor the trial
+  record knows about the mirror yet.
+
+So the two coherent setups are:
+
+```
+real mirror          Mirror.FlipHorizontally = true
+(the defaults)
+                     VisualTransform     = { Rotation: 180, SwapLeftRight: true }
+                     VestibularTransform = { Rotation: 180, SwapLeftRight: true }
+                     body goes back-right, screen shows forward-right
+
+turned-round view    Mirror.FlipHorizontally = false
+                     VisualTransform     = { Rotation: 180, SwapLeftRight: false }
+                     VestibularTransform = { Rotation: 180, SwapLeftRight: false }
+                     body goes back-left, screen shows forward-right
+                     (the platform veers as it did before the mirror)
+```
+
+### Geometry
+
+- **The field of view is derived, not set.** It is the angle the screen subtends at
+  the eye — 33.7° × 17.2° for the default 40 × 20 cm at 66 cm — so the screen acts as
+  a window: a star the camera sees 10° off its axis appears 10° off the centre of the
+  screen, and a 4° heading sits 4° off centre. Given Unity's default 60° lens instead,
+  the same screen would hold a picture about 98° wide squeezed into 33.7°: a 16°
+  heading would sit about 4° off centre, a 4° one about 1°, and the flow would crawl.
+  `Magnification` sets that squeeze on purpose, like a convex mirror: at 0.5 the lens
+  covers about 62° across and every angle on the screen is halved — headings included.
+- **It is fixed to the car, not to the head.** Screen and camera sit at the eye's
+  calibrated place and move with the stimulus trajectory — the 13 cm of a trial —
+  and with nothing else. Turning or moving the head changes neither where the screen
+  is nor what it shows: a parking screen. A real mirror would stay put as well, but
+  its picture would shift with the head.
+- The fixation point is fixed to the car as well, unless told otherwise:
+  `FixationPoint.Anchor` is `Body` (straight ahead, the default), `Mirror` (on the
+  centre of the screen, where a heading straight back shows) or `Head` (follows the
+  head's position, as the old scene object did). Only `Head` lets the dot and the
+  mirror drift apart when the head moves.
+- **It is a picture on a flat surface, not an optical mirror.** Both eyes get the
+  same image at the depth of the screen: no stereo depth behind the glass, no
+  parallax through it.
+
+### Frame
+
+Without one the screen is black on black and can only be seen while there are stars
+behind. `Mirror.FrameTexture` names an image in a `Resources` folder (no extension;
+empty for none), drawn as a frame `Mirror.FrameWidth` meters wide round the screen.
+`MirrorExperiment/Resources/MirrorFrame.png` is an example, drawn for the default
+screen and frame width.
+
+- The image is stretched over the screen plus the frame width on every side, and the
+  screen covers its middle — only the outer border shows. Draw it at the proportions
+  of that outer rectangle.
+- It is opaque, but black is invisible against the black surround, so any outline is
+  possible: paint black whatever should not be seen. The inner edge is always the
+  screen's rectangle.
+- A name that is not found refuses Start, like a malformed config.
+- The frame stays still while the flow moves next to it. That makes it a stationary
+  visual reference, which is part of the stimulus, not decoration.
+
+### It is a different visual stimulus
+
+The flow now covers a 34° × 17° patch instead of the whole field (at the default
+size), it carries no stereo depth, and it passes through a texture on the way.
+Visual reliability will not be
+what it was full-field, so the coherence that balances `σ_vis` against `σ_ves` has to
+be piloted again with the mirror on, at the screen size finally settled on.
 
 ---
 
@@ -278,6 +419,13 @@ converges at about 73% correct, which samples the informative part of the curve.
 | `Parameters.cs` | Everything configurable |
 | `ParametersFile.cs` | Reads the config JSON from the data folder |
 | `StarField.cs` | The star cloud: geometry, coherence, rendering |
+| `RearViewMirror.cs` | The mirror: rear camera, texture and screen, built in code |
+| `MirrorSettings.cs` | Its config: screen size and place, flip, magnification, frame |
+| `Resources/MirrorFrame.png` | Example frame image for the default screen |
+| `FixationPoint.cs` | The fixation dot, built in code |
+| `FixationPointSettings.cs`, `FixationAnchor.cs` | Its config: on/off, what it is fixed to, distance, size |
+| `Resources/FixationPoint.mat` | Its material: the project's fixation shader, drawn on top of everything |
+| `Resources/StarMaterial.mat` | The stars' material, also the template for the mirror's screen and frame |
 | `SessionWriter.cs` | One folder per session, one JSON line per trial |
 | `TrialAnswer.cs`, `TrialState.cs` | Enums |
 
@@ -285,23 +433,43 @@ converges at about 73% correct, which samples the informative part of the curve.
 
 ## Scene setup
 
-1. One empty GameObject with the `StarField` component. The 2112 triangles are **not**
-   GameObjects — the mesh is built in code and drawn with `Graphics.DrawMeshInstanced`
-   in batches of 1023 (its per-call limit). No star prefab exists or is needed.
-   Its geometry fields in the Inspector only feed the preview: pressing Start
-   overwrites them from `Parameters.StarField` in the config.
-2. Assign `StarMaterial`: HDRP Unlit, white, **Double-Sided on**, **GPU Instancing on**.
-   Double-sided matters — the original disables face culling entirely, and the
-   triangles are one-sided.
-3. Set the GameObject's layer so the VR camera's culling mask includes it;
-   `gameObject.layer` is what gets passed to the draw call.
-4. Camera near clip **0.05** (the paper clips at 5 cm).
-5. In `Bootstrap.cs`, exactly one experiment handler active.
+Almost none. Everything the experiment shows is built in code at startup, under a
+root object of its own that exists only while the app runs:
 
-The GameObject's own transform barely matters: it is only the initial cloud anchor
-before the first trial. From then on the cloud is re-anchored to the calibrated
-camera rig — not to the live head pose, since the participant is head-supported and
-"straight ahead" is a single direction pinned at calibration.
+```
+MirrorExperiment
+├── Stars             the StarField
+├── EyeMirrorVolume   copies every headset frame to the operator's "Unity view" panel
+├── FixationPoint
+└── RearViewMirror    only once the config switches the mirror on
+```
+
+The scene holds none of it, so none of it can be lost from the scene or disagree
+with the config. Losing it is not hypothetical: a custom pass kept in a scene is
+dropped if the scene is ever loaded while its class does not compile, and that has
+happened once. (`RaceExperiment` still keeps its own objects in the scene.)
+
+What is still needed:
+
+1. `Resources/StarMaterial.mat`: HDRP Unlit, white, **Double-Sided on**, **GPU
+   Instancing on**. Double-sided matters — the original disables face culling
+   entirely, and the triangles are one-sided. The 2112 triangles are **not**
+   GameObjects: the mesh is built in code and drawn with `Graphics.DrawMeshInstanced`
+   in batches of 1023 (its per-call limit).
+2. The stars are drawn on the headset camera's own layer, so the camera's culling mask
+   has to include that layer. A warning in the log says so if it does not.
+3. Camera near clip **0.05** (the paper clips at 5 cm).
+4. In `Bootstrap.cs`, exactly one experiment handler active.
+
+While the app runs, the `Stars` object's Inspector still has the debug toggles —
+`AlwaysVisible`, `PreviewCoherence`. They reset with every Play, so a preview cannot
+be left switched on into a real session. Its geometry fields are overwritten from
+`Parameters.StarField` when the app starts and on every Start, so the preview shows
+the configured cloud.
+
+The cloud is anchored to the calibrated camera rig — not to the live head pose, since
+the participant is head-supported and "straight ahead" is a single direction pinned
+at calibration.
 
 ---
 
@@ -320,6 +488,12 @@ Mirrored into a hidden `%UserProfile%/MocuME_Vault/` as an independent backup.
 The config is re-read on **every** press of Start, so editing it does not require
 restarting Unity. A malformed file refuses to start the experiment rather than
 quietly falling back to defaults.
+
+A condition can be parked without deleting it: set its `"Enabled": false` and it stays
+in the file but out of the run. JSON has no comments, so this is how the paper's five
+conditions stay in the file while piloting runs just one. Condition indices in the
+data are counted over the whole list, disabled ones included, so a condition keeps
+its index whether or not its neighbours ran.
 
 Trials are appended, not rewritten. Each line is self-contained: it carries the
 nested condition, all three levels of heading, the reference the answer was scored
@@ -382,9 +556,16 @@ noise can tick every second frame with no jitter at all.
 - **Design.** Five interleaved conditions as in the paper, or a single combined
   condition? Configurable either way via `Parameters.Conditions`.
 - **Reverse visual.** If the visual transform is ever set to 180 the camera travels
-  backward through a cloud that is centred *ahead* of the participant. It works
-  geometrically over 13 cm, but the centring was chosen for forward motion. Worth
-  asking whether that mode is a real case at all before designing around it.
+  backward through a cloud that is centred *ahead* of the participant, unless
+  `DistanceToCloudCenter` says otherwise. It works geometrically over 13 cm, but the
+  centring was chosen for forward motion. With the mirror this is the normal case, so
+  the cloud's place wants settling along with the mirror's.
+- **Mirror: left and right.** Real mirror or turned-round view, and which way the
+  platform veers — see *Which way is left*. Once settled, the on-screen heading
+  belongs in the trial record and `Visual` scoring should grade against it.
+- **Mirror: what is ahead.** Only the screen, or also stars seen directly and
+  receding, as through a windscreen? The second gives a large-field cue that says
+  "backward" next to a small one that says "forward". Set by where the cloud is put.
 - **Fresnel glare.** White triangles on black produce glare streaks on the current
   headset. Lowering the white level is the safer fix than lifting the black, but any
   luminance change alters visual reliability and therefore needs re-piloting.

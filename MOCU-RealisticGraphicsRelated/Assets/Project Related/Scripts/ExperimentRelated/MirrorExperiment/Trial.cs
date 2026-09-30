@@ -17,8 +17,8 @@ namespace MirrorExperiment
     ///     PhysicalVisualHeading       where the optic flow actually goes
     ///     PhysicalVestibularHeading   where the platform actually carries you
     ///
-    /// Worked example - Heading +16, Delta +6, default transforms (visual 0 degrees,
-    /// vestibular 180):
+    /// Worked example - Heading +16, Delta +6, transforms without the swap (visual
+    /// 0 degrees, vestibular 180):
     ///
     ///     Heading                   = +16     staircase
     ///     VisualHeading             = +13     16 - 6/2

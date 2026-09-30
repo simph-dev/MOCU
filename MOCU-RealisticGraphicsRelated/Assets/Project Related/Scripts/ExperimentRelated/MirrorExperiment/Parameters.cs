@@ -46,10 +46,15 @@ namespace MirrorExperiment
         public float ProfileSigmas                          { get; set; } = 3f;     // gives peak v 0.31 m/s, peak a 1.12 m/s^2
 
         /// Where each cue actually travels, relative to the nominal heading. See
-        /// HeadingTransform. The mirror run is the default: optic flow simulates
-        /// going forward while the platform is reversed.
-        public HeadingTransform VisualTransform             { get; set; } = new HeadingTransform { Rotation = 0f };
-        public HeadingTransform VestibularTransform         { get; set; } = new HeadingTransform { Rotation = 180f };
+        /// HeadingTransform. By default both go the same way: backward, with a
+        /// nominal heading to the right going back-right. The scene is physically
+        /// truthful and the reversal comes from the rear-view mirror, which being a
+        /// real mirror (Mirror.FlipHorizontally) shows back-right as forward-right.
+        ///
+        /// For the earlier design without a mirror - optic flow forward, platform
+        /// reversed - set VisualTransform to { Rotation 0, SwapLeftRight false }.
+        public HeadingTransform VisualTransform             { get; set; } = new HeadingTransform { Rotation = 180f, SwapLeftRight = true };
+        public HeadingTransform VestibularTransform         { get; set; } = new HeadingTransform { Rotation = 180f, SwapLeftRight = true };
 
         /// VR travel can be scaled relative to the physical travel. 1 = identical.
         public float VisualDistanceMultiplier               { get; set; } = 1f;
@@ -65,9 +70,23 @@ namespace MirrorExperiment
         /// the coherence value cannot simply be carried over.
         public float NoiseUpdateHz                          { get; set; } = 60f;
 
-        /// Geometry of the cloud. Everything except the material and the debug
-        /// toggles, which stay on the StarField component in the scene.
+        /// Geometry of the cloud. Everything except the material, which is
+        /// Resources/StarMaterial, and the debug toggles, which are on the Stars
+        /// object's Inspector while the app runs.
         public StarFieldSettings StarField                  { get; set; } = new StarFieldSettings();
+
+        // ---- mirror ---------------------------------------------------------------------------
+
+        /// The rear-view mirror screen. Off by default. See MirrorSettings, and
+        /// README.md for which way left and right end up.
+        public MirrorSettings Mirror                        { get; set; } = new MirrorSettings();
+
+        // ---- fixation -------------------------------------------------------------------------
+
+        /// The dot the participant keeps their eyes on: whether it is shown, what it
+        /// is fixed to - the body, the mirror or the head - and its size. See
+        /// FixationPointSettings.
+        public FixationPointSettings FixationPoint          { get; set; } = new FixationPointSettings();
 
         // ---- positions ------------------------------------------------------------------------
 

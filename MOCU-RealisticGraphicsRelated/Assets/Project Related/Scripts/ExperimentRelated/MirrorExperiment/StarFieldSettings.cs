@@ -25,5 +25,17 @@ namespace MirrorExperiment
         /// coherence calibration is tied to the size it was made at.
         public float StarWidth { get; set; } = 0.01f;
         public float StarHeight { get; set; } = 0.01f;
+
+        /// No star is drawn closer than this to the eye, in meters; 0 for no limit.
+        /// The zone is a sphere on the eye's calibrated place, the inside of a car:
+        /// it travels with the stimulus trajectory, not with the head, the mirror
+        /// hangs within it and everything that moves is outside. Keep it larger
+        /// than Mirror.Distance, or stars pass in front of the screen.
+        ///
+        /// In effect a spherical near clip: stars vanish as the zone reaches them
+        /// and reappear once it has passed. The nearest stars are the ones whose
+        /// flow is fastest, so this changes the stimulus - and the cloud has to
+        /// reach well beyond the radius, or the zone swallows most of it.
+        public float ClearRadius { get; set; } = 0f;
     }
 }

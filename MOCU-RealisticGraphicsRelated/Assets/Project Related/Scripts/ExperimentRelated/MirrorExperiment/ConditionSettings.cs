@@ -9,8 +9,8 @@ namespace MirrorExperiment
     ///
     /// Every trial has the same structure regardless of condition. The two flags
     /// only decide what is left out: no visual means the stars are not drawn, no
-    /// vestibular means no commands go to the platform. The fixation point is
-    /// always visible and the timing is identical either way.
+    /// vestibular means no commands go to the platform. The fixation point, if
+    /// shown at all, is shown the same way, and the timing is identical either way.
     public class ConditionSettings
     {
         /// Set false to leave a condition in the config but out of the run. JSON has

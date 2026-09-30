@@ -32,13 +32,15 @@ namespace MirrorExperiment
         public Material StarMaterial;
 
         [Header("Geometry (meters) - overwritten by the config file")]
-        [Tooltip("These are only what the preview uses before an experiment starts. " +
-                 "Pressing Start replaces them with Parameters.StarField from the config, " +
-                 "so edit the JSON, not this.")]
+        [Tooltip("Replaced with Parameters.StarField from the config when the app starts " +
+                 "and again on every Start, so edit the JSON, not this.")]
         public Vector3 Volume = new Vector3(1.30f, 1.30f, 1.00f);
         public float DistanceToCloudCenter = 0.66f;
         public float Density = 1250f;
         public Vector2 StarSize = new Vector2(0.01f, 0.01f);
+
+        [Tooltip("No star is drawn closer than this to the eye's place in the car. 0 = off.")]
+        public float ClearRadius = 0f;
 
         [Header("Rendering")]
         public bool CastShadows = false;
@@ -67,6 +69,10 @@ namespace MirrorExperiment
 
         private Vector3 _cloudCenter;
         private Quaternion _cloudRotation = Quaternion.identity;
+
+        /// Centre of the clear zone, in world coordinates. Null until the
+        /// experiment supplies one, and no zone before that, whatever the radius.
+        private Vector3? _clearZoneCenter;
 
         private float _coherence = 1f;
         private float _noiseUpdateHz = 60f;
@@ -105,8 +111,18 @@ namespace MirrorExperiment
             DistanceToCloudCenter = settings.DistanceToCloudCenter;
             Density = settings.DensityPerCubicMeter;
             StarSize = new Vector2(settings.StarWidth, settings.StarHeight);
+            ClearRadius = settings.ClearRadius;
 
             Rebuild();
+        }
+
+        /// Where the clear zone is centred: the eye's place in the car. Supplied
+        /// every frame, so the zone travels with the camera trajectory through the
+        /// cloud - and with nothing else. The head moving inside the car does not
+        /// move it, just as it does not move the mirror.
+        public void SetClearZoneCenter(Vector3 center)
+        {
+            _clearZoneCenter = center;
         }
 
         /// Reallocates for the current geometry. Star count follows from volume and
@@ -229,19 +245,44 @@ namespace MirrorExperiment
                     _matrices[i] = MakeStarMatrix(RandomPointInCloud());
         }
 
+        /// Stars inside the clear zone are skipped here, at drawing time, and
+        /// nowhere else. They stay in the cloud and keep taking part in the noise,
+        /// so the cloud remains uniform in the world and the zone is only a hole
+        /// that moves through it: a star passes out of sight as the zone reaches it
+        /// and back into sight once the zone has passed.
         private void Draw()
         {
             var shadows = CastShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
 
-            for (int offset = 0; offset < _starCount; offset += MaxInstancesPerDrawCall)
-            {
-                int count = Mathf.Min(MaxInstancesPerDrawCall, _starCount - offset);
-                System.Array.Copy(_matrices, offset, _drawBatch, 0, count);
+            bool hasClearZone = _clearZoneCenter.HasValue && ClearRadius > 0f;
+            Vector3 center = hasClearZone ? _clearZoneCenter.Value : Vector3.zero;
+            float clearRadiusSqr = ClearRadius * ClearRadius;
 
-                Graphics.DrawMeshInstanced(
-                    _mesh, 0, StarMaterial, _drawBatch, count, null,
-                    shadows, ReceiveShadows, gameObject.layer);
+            int count = 0;
+
+            for (int i = 0; i < _starCount; i++)
+            {
+                if (hasClearZone && (_matrices[i].GetPosition() - center).sqrMagnitude < clearRadiusSqr)
+                    continue;
+
+                _drawBatch[count++] = _matrices[i];
+
+                if (count == _drawBatch.Length)
+                {
+                    DrawBatch(count, shadows);
+                    count = 0;
+                }
             }
+
+            if (count > 0)
+                DrawBatch(count, shadows);
+        }
+
+        private void DrawBatch(int count, ShadowCastingMode shadows)
+        {
+            Graphics.DrawMeshInstanced(
+                _mesh, 0, StarMaterial, _drawBatch, count, null,
+                shadows, ReceiveShadows, gameObject.layer);
         }
 
         private Vector3 RandomPointInCloud()
