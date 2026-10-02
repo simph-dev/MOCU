@@ -62,7 +62,8 @@ namespace MirrorExperiment
         public float PhysicalVisualHeading { get; private set; }
         public float PhysicalVestibularHeading { get; private set; }
 
-        public bool HasVisual => Condition.HasVisual;
+        public bool HasVisualInside => Condition.HasVisualInside;
+        public bool HasVisualOutside => Condition.HasVisualOutside;
         public bool HasVestibular => Condition.HasVestibular;
 
         public CorrectAnswerReference CorrectAnswerBasedOn { get; private set; } = CorrectAnswerReference.Nominal;

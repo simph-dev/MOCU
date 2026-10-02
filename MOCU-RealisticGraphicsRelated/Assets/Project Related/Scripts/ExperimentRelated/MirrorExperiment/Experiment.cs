@@ -38,14 +38,45 @@ namespace MirrorExperiment
 
         public int GetTotalTrialsCount() => _trials.Count;
 
+        /// What would stop the conditions from running as written, or null. Called
+        /// when Start is pressed, so that a mistake in the config is reported to the
+        /// researcher instead of ending the run halfway through its setup.
+        public static string FindConditionProblem(Parameters config)
+        {
+            if (config.Conditions == null || config.Conditions.Count == 0)
+                return "Parameters.Conditions is empty - nothing to run";
+
+            for (int i = 0; i < config.Conditions.Count; i++)
+            {
+                var condition = config.Conditions[i];
+
+                // Disabled ones too: they are the ones that get switched back on
+                // later, by which time nobody remembers the file needs fixing.
+                if (condition.HasVisual != null)
+                    return $"Condition {i} still has HasVisual - replace it with HasVisualInside (the mirror) and HasVisualOutside (seen directly)";
+
+                if (!condition.Enabled)
+                    continue;
+
+                if (!condition.HasAnyVisual && !condition.HasVestibular)
+                    return $"Condition {i} has no cue enabled - it would run {config.TrialsPerCondition} blank trials";
+
+                if (condition.HasVisualInside && !config.Mirror.Enabled)
+                    return $"Condition {i} shows stars in the mirror, but Mirror.Enabled is false";
+            }
+
+            if (!config.Conditions.Exists(c => c.Enabled))
+                return "Every condition is disabled - nothing to run";
+
+            return null;
+        }
+
         public void GenerateTrials()
         {
-            if (_config.Conditions == null || _config.Conditions.Count == 0)
-                throw new Exception("Parameters.Conditions is empty - nothing to run");
+            string problem = FindConditionProblem(_config);
 
-            for (int i = 0; i < _config.Conditions.Count; i++)
-                if (_config.Conditions[i].Enabled && !_config.Conditions[i].HasVisual && !_config.Conditions[i].HasVestibular)
-                    throw new Exception($"Condition {i} has neither cue enabled - it would run {_config.TrialsPerCondition} blank trials");
+            if (problem != null)
+                throw new Exception(problem);
 
             _trials.Clear();
 

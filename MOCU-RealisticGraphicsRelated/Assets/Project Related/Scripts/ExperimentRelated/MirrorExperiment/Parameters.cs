@@ -13,15 +13,16 @@ namespace MirrorExperiment
         public int TrialsPerCondition                       { get; set; } = 80;     // 5 conditions -> 400 trials
 
         /// The conditions to run, interleaved, one staircase each. This is the
-        /// paper's five-condition design; replace the list to run anything else,
-        /// down to a single combined condition.
+        /// paper's five-condition design, with its visual cue as the field seen
+        /// directly; replace the list to run anything else, down to a single
+        /// combined condition. See ConditionSettings for the three cues.
         public List<ConditionSettings> Conditions            { get; set; } = new List<ConditionSettings>
         {
-            new() { Enabled = true, HasVestibular = true,  HasVisual = false },
-            new() { Enabled = true, HasVestibular = false, HasVisual = true,  Coherence = 1.00f },
-            new() { Enabled = true, HasVestibular = false, HasVisual = true,  Coherence = 0.65f },
-            new() { Enabled = true, HasVestibular = true,  HasVisual = true,  Coherence = 0.65f, Delta = +6f },
-            new() { Enabled = true, HasVestibular = true,  HasVisual = true,  Coherence = 0.65f, Delta = -6f },
+            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = false },
+            new() { Enabled = true, HasVestibular = false, HasVisualOutside = true,  Coherence = 1.00f },
+            new() { Enabled = true, HasVestibular = false, HasVisualOutside = true,  Coherence = 0.65f },
+            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = true,  Coherence = 0.65f, Delta = +6f },
+            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = true,  Coherence = 0.65f, Delta = -6f },
         };
 
         /// Heading magnitude at difficulty level 0, degrees. Every level multiplies

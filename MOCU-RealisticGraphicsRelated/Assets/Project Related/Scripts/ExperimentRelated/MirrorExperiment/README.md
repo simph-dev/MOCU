@@ -40,6 +40,13 @@ Three kinds of condition, interleaved:
 | Visual | Platform still, stars simulate motion | visual threshold `σ_vis` |
 | Combined | Both, deliberately disagreeing by Δ | how the two are weighted |
 
+With the rear-view mirror the visual cue comes in two fields, each switched on or off
+per condition next to `HasVestibular`: `HasVisualInside`, the stars in the mirror
+(mirror-reversed), and `HasVisualOutside`, the stars seen directly round it (not
+reversed). That makes three cues — three unimodal, three bimodal and one trimodal
+combination. The paper's design is the outside field alone, which is what the default
+conditions use. See *Rear-view mirror*.
+
 The point is the comparison. From the two unisensory thresholds, Bayes predicts
 what the *optimal* weighting would be — a cue deserves weight in proportion to its
 reliability, `R = 1/σ²`:
@@ -258,10 +265,18 @@ with the body; the mirror looks backward, and there the same motion shows as flo
 expanding — forward, as in a car's mirror when reversing. The reversal comes from the
 mirror itself. No transform has to supply it.
 
-A second camera sits at the eye looking straight back and renders into a texture;
-the texture is shown on a flat screen in front of the participant. Camera, texture
-and screen are all built in code from the config (`RearViewMirror.cs`). Nothing is
-added to the scene.
+A flat screen hangs in front of the participant, and what is behind them is rendered
+into it. There are two ways to fill it, chosen per condition (`InsideView`), so one
+run can interleave both, each with its own staircase:
+
+| `InsideView` | Cameras | Each eye sees | Head movement |
+|---|---|---|---|
+| `Mirror` (default) | one per eye, at that eye reflected in the glass | its own picture: depth behind the glass | shifts the picture, as in a real mirror |
+| `Screen` | one, at the eye's place looking straight back | the same flat picture | changes nothing: a parking screen |
+
+Cameras, textures and screen are all built in code from the config
+(`RearViewMirror.cs`). Nothing is added to the scene. Only the active view's cameras
+render, so the other costs nothing.
 
 Switching it on changes nothing else. In particular **the cloud stays where
 `Parameters.StarField` puts it**, and the mirror only shows the part of it that lies
@@ -297,11 +312,39 @@ around the head, with a cabin    DistanceToCloudCenter = 0
                                  3 x 3 x 3 m at 1250 per m^3 = 33750 stars
 ```
 
+### Inside and outside
+
+One cloud and one camera motion feed both fields: the mirror's cameras ride with the
+car. So the two always show the same movement — reversed in the mirror, not outside
+it — exactly as the mirror and the windows of a car do. Δ applies to both the same way
+(−Δ/2), since they are one visual heading.
+
+Each condition picks which of them has stars, through `HasVisualInside` and
+`HasVisualOutside`. The stars sit on a layer of their own, `Stars` (layer 7 in Tags and
+Layers), and each trial switches that layer on or off in the culling masks of the
+headset camera (outside) and of the mirror's cameras (inside). Any other camera — the
+Scene view, one recording the scene from the side — always sees them.
+
+The screen, its frame and the fixation point sit on another layer, `Cabin` (layer 10):
+the inside of the car. The headset camera renders it; the mirror's cameras never do. In
+the Mirror view they look straight at the screen, and would otherwise see the screen
+they render into, and the fixation point a second time, reflected.
+
+- The screen, its frame and the fixation point stay in every condition, stars in the
+  mirror or not. Otherwise the mere presence of the mirror would tell the participant
+  which condition this is.
+- `HasVisualInside` needs `Mirror.Enabled`; Start refuses a condition that asks for one
+  without the other.
+- `HasVisual`, the single visual flag from before, is refused too. It could mean either
+  field, so the config has to say which.
+
 ### Which way is left
 
 A mirror swaps left and right, and the task is a left/right judgement, so this is
-not a detail. For a nominal heading **to the right**, with the camera travelling
-backward (`VisualTransform.Rotation` at 180):
+not a detail. The `Mirror` view is always reversed, being a mirror — the same as
+`FlipHorizontally: true` below. Only the `Screen` view follows the flag. For a nominal
+heading **to the right**, with the camera travelling backward
+(`VisualTransform.Rotation` at 180):
 
 | `VisualTransform.SwapLeftRight` | Camera travels | `Mirror.FlipHorizontally` | Screen shows |
 |---|---|---|---|
@@ -337,35 +380,52 @@ turned-round view    Mirror.FlipHorizontally = false
 
 ### Geometry
 
-- **The field of view is derived, not set.** It is the angle the screen subtends at
-  the eye — 33.7° × 17.2° for the default 40 × 20 cm at 66 cm — so the screen acts as
-  a window: a star the camera sees 10° off its axis appears 10° off the centre of the
-  screen, and a 4° heading sits 4° off centre. Given Unity's default 60° lens instead,
-  the same screen would hold a picture about 98° wide squeezed into 33.7°: a 16°
-  heading would sit about 4° off centre, a 4° one about 1°, and the flow would crawl.
-  `Magnification` sets that squeeze on purpose, like a convex mirror: at 0.5 the lens
-  covers about 62° across and every angle on the screen is halved — headings included.
-- **It is fixed to the car, not to the head.** Screen and camera sit at the eye's
-  calibrated place and move with the stimulus trajectory — the 13 cm of a trial —
-  and with nothing else. Turning or moving the head changes neither where the screen
-  is nor what it shows: a parking screen. A real mirror would stay put as well, but
-  its picture would shift with the head.
+- **Mirror view: each eye camera is the eye reflected in the glass.** It looks back
+  through the glass, and its frustum is cut to the glass exactly — an off-axis
+  projection whose near plane is the glass itself, so nothing beyond the glass can
+  show in it. A ray from the reflected eye through a point of the glass is the
+  reflection of the ray from the real eye to that point, so every point of the
+  picture lands where the real reflection would. Things behind look further away
+  than through the Screen view — eye to glass to star, not eye to star — and so flow
+  more slowly; the direction of travel is the same.
+- The eyes are the headset's own, live (`MirrorFollowsHead: true`), or held at the
+  calibrated place (`false`): stereo depth either way, parallax only when live.
+  Without a headset reporting its eyes — on a laptop — `EyeSeparation` stands in, and
+  the log says so once.
+- **Screen view: the field of view is derived, not set.** It is the angle the screen
+  subtends at the eye — 33.7° × 17.2° for the default 40 × 20 cm at 66 cm — so the
+  screen acts as a window: a star the camera sees 10° off its axis appears 10° off the
+  centre of the screen, and a 4° heading sits 4° off centre. Given Unity's default 60°
+  lens instead, the same screen would hold a picture about 98° wide squeezed into
+  33.7°: a 16° heading would sit about 4° off centre, a 4° one about 1°, and the flow
+  would crawl. `Magnification` sets that squeeze on purpose, like a convex mirror: at
+  0.5 the lens covers about 62° across and every angle on the screen is halved —
+  headings included.
+- The Screen view's camera can be moved (`ScreenCameraOffsetRight/Up/Back`) and tilted
+  down (`ScreenCameraPitch`), like a parking camera on a bumper. All zero — at the eye,
+  looking straight back — is this experiment's setup, and the only one where angles
+  on the screen are true.
+- **The screen is fixed to the car, not to the head.** It sits at the eye's calibrated
+  place and moves with the stimulus trajectory — the 13 cm of a trial — and with
+  nothing else. What the head does can change what the Mirror view shows, as with a
+  real mirror, never where the screen is.
 - The fixation point is fixed to the car as well, unless told otherwise:
   `FixationPoint.Anchor` is `Body` (straight ahead, the default), `Mirror` (on the
   centre of the screen, where a heading straight back shows) or `Head` (follows the
   head's position, as the old scene object did). Only `Head` lets the dot and the
   mirror drift apart when the head moves.
-- **It is a picture on a flat surface, not an optical mirror.** Both eyes get the
-  same image at the depth of the screen: no stereo depth behind the glass, no
-  parallax through it.
+- **The Screen view is a picture on a flat surface.** Both eyes get the same image at
+  the depth of the screen: no stereo depth behind the glass, no parallax through it.
+  If the field inside is to be compared with the field outside — which is stereo, as
+  everything in VR — the Mirror view keeps that difference out of the comparison.
 
 ### Frame
 
 Without one the screen is black on black and can only be seen while there are stars
-behind. `Mirror.FrameTexture` names an image in a `Resources` folder (no extension;
-empty for none), drawn as a frame `Mirror.FrameWidth` meters wide round the screen.
-`MirrorExperiment/Resources/MirrorFrame.png` is an example, drawn for the default
-screen and frame width.
+behind. `Mirror.ShowFrame` (off by default) draws a frame `Mirror.FrameWidth` meters
+wide round the screen, from the image `Mirror.FrameTexture` names in a `Resources`
+folder (no extension). The default, `MirrorExperiment/Resources/MirrorFrame.png`, is a
+plain dark frame with square corners, drawn for the default screen and frame width.
 
 - The image is stretched over the screen plus the frame width on every side, and the
   screen covers its middle — only the outer border shows. Draw it at the proportions
@@ -380,8 +440,8 @@ screen and frame width.
 ### It is a different visual stimulus
 
 The flow now covers a 34° × 17° patch instead of the whole field (at the default
-size), it carries no stereo depth, and it passes through a texture on the way.
-Visual reliability will not be
+size), it passes through a texture on the way, and in the Screen view it carries no
+stereo depth. Visual reliability will not be
 what it was full-field, so the coherence that balances `σ_vis` against `σ_ves` has to
 be piloted again with the mirror on, at the screen size finally settled on.
 
@@ -419,7 +479,10 @@ converges at about 73% correct, which samples the informative part of the curve.
 | `Parameters.cs` | Everything configurable |
 | `ParametersFile.cs` | Reads the config JSON from the data folder |
 | `StarField.cs` | The star cloud: geometry, coherence, rendering |
-| `RearViewMirror.cs` | The mirror: rear camera, texture and screen, built in code |
+| `RearViewMirror.cs` | The mirror: its cameras, textures and screen, built in code |
+| `InsideView.cs` | Mirror or Screen: how the field inside the mirror is shown |
+| `KeyboardHead.cs` | Debug: moving the head with the keyboard instead of walking |
+| `Resources/StereoMirrorScreen.shader` | The Mirror view's screen: shows each eye the picture rendered for it |
 | `MirrorSettings.cs` | Its config: screen size and place, flip, magnification, frame |
 | `Resources/MirrorFrame.png` | Example frame image for the default screen |
 | `FixationPoint.cs` | The fixation dot, built in code |
@@ -456,16 +519,29 @@ What is still needed:
    entirely, and the triangles are one-sided. The 2112 triangles are **not**
    GameObjects: the mesh is built in code and drawn with `Graphics.DrawMeshInstanced`
    in batches of 1023 (its per-call limit).
-2. The stars are drawn on the headset camera's own layer, so the camera's culling mask
-   has to include that layer. A warning in the log says so if it does not.
-3. Camera near clip **0.05** (the paper clips at 5 cm).
-4. In `Bootstrap.cs`, exactly one experiment handler active.
+2. Two layers in Tags and Layers: `Stars` (layer 7), which the stars are drawn on and
+   the code switches per camera, and `Cabin` (layer 10), for the screen, its frame and
+   the fixation point. Without `Stars` there are no stars, without `Cabin` no mirror;
+   the log and Start say so.
+3. `Resources/StereoMirrorScreen.shader`, the Mirror view's screen. HDRP Unlit samples
+   one texture for both eyes, so the Mirror view needs its own small shader.
+4. Camera near clip **0.05** (the paper clips at 5 cm).
+5. In `Bootstrap.cs`, exactly one experiment handler active.
 
 While the app runs, the `Stars` object's Inspector still has the debug toggles —
 `AlwaysVisible`, `PreviewCoherence`. They reset with every Play, so a preview cannot
 be left switched on into a real session. Its geometry fields are overwritten from
 `Parameters.StarField` when the app starts and on every Start, so the preview shows
 the configured cloud.
+
+The `MirrorExperiment` object itself has one more, `KeyboardHead.Active`: the head moves
+with W/S/A/D (along the view, kept level) and E/Q (up, down), Shift five times
+faster, and turns with the right mouse button held, for a laptop. The headset's own
+position is ignored meanwhile, its rotation still counts. The car — mirror, clear
+zone, a fixation point fixed to the body or the mirror — stays put, so this is the
+same as a participant moving their head, without walking round the room to check
+the mirror's parallax. It resets with every Play as well; switching it off puts the
+head back at its calibrated place.
 
 The cloud is anchored to the calibrated camera rig — not to the live head pose, since
 the participant is head-supported and "straight ahead" is a single direction pinned

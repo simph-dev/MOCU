@@ -42,6 +42,7 @@ namespace MirrorExperiment
 
         private Transform _cameras;
         private Transform _vrCamera;
+        private Camera _headsetCamera;
 
         /// Everything this experiment shows is built in code, under this root of its
         /// own - the star field, the fixation point, the mirror and the volume
@@ -57,6 +58,10 @@ namespace MirrorExperiment
         /// destroyed when the config says so.
         private FixationPoint _fixationPoint;
 
+        /// Debug: the head moved with the keyboard. On the MirrorExperiment object,
+        /// off unless switched on there while the app runs.
+        private KeyboardHead _keyboardHead;
+
         /// Where the operator's "Unity view" panel gets its picture from: the
         /// EyeMirror pass copies every headset frame into this texture.
         private const string OperatorViewTexture = "GUI/UnityViewFromUi";
@@ -64,6 +69,19 @@ namespace MirrorExperiment
         /// HDRP Unlit, white, Double-Sided and GPU Instancing on. In
         /// MirrorExperiment/Resources, so a build includes it without the scene.
         private const string StarMaterialResource = "StarMaterial";
+
+        /// The stars have a layer of their own, so that each camera can be shown
+        /// them or not by its culling mask alone: the headset camera for the field
+        /// seen directly, the mirror's camera for the field in the mirror. Any other
+        /// camera - the Scene view, one recording from the side - always sees them.
+        private const string StarsLayerName = "Stars";
+
+        /// The inside of the car - the mirror's screen, its frame, the fixation
+        /// point - has a layer of its own too. The headset camera renders it; the
+        /// mirror's cameras do not, since in the Mirror view they look straight at
+        /// the screen they render into.
+        private const string CabinLayerName = "Cabin";
+        private int _cabinLayer = -1;
 
         private Vector3 _manualOffset = Vector3.zero;
         private float _yRotationOffset = 0f;
@@ -113,8 +131,19 @@ namespace MirrorExperiment
 
             _cameras = GameObject.Find("Cameras").transform;
             _vrCamera = _cameras.Find("VrHelmetCamera");
+            _headsetCamera = _vrCamera.GetComponent<Camera>();
+
+            _cabinLayer = LayerMask.NameToLayer(CabinLayerName);
+
+            if (_cabinLayer < 0)
+                Debug.LogError($"MirrorExperiment: no \"{CabinLayerName}\" layer in Tags and Layers - the mirror cannot be built");
+            else
+                SetLayerRendered(_headsetCamera, 1 << _cabinLayer, true);
 
             _root = new GameObject("MirrorExperiment").transform;
+
+            _keyboardHead = _root.gameObject.AddComponent<KeyboardHead>();
+            _keyboardHead.SetHead(_vrCamera);
 
             _starField = CreateStarField();
 
@@ -132,6 +161,9 @@ namespace MirrorExperiment
             foreach (string problem in new[] { ConfigureMirror(), ConfigureFixationPoint() })
                 if (problem != null)
                     Debug.LogError($"MirrorExperiment: {problem}");
+
+            // The headset camera does not render the stars' layer until told to.
+            ShowStarsTo(outside: true, inside: true);
 
             _input.GotAnswer_Left += HandleInput_Left;
             _input.GotAnswer_Right += HandleInput_Right;
@@ -184,6 +216,16 @@ namespace MirrorExperiment
 
             _cameras.rotation = Quaternion.Euler(0, _yRotationOffset, 0);
             _cameras.position = basePosition + _manualOffset;
+
+            // Debug: the eye goes where the keyboard puts it, relative to its
+            // calibrated place. The rig is moved so as to cancel whatever position
+            // the headset reports, which leaves only the headset's rotation. The car
+            // below is left alone, as when a participant moves their head.
+            if (_keyboardHead != null && _keyboardHead.Active)
+            {
+                _cameras.rotation = Quaternion.Euler(_keyboardHead.Pitch, _yRotationOffset + _keyboardHead.Yaw, 0f);
+                _cameras.position = basePosition + _keyboardHead.Offset - _cameras.rotation * _vrCamera.localPosition;
+            }
 
             if (_mirror != null)
                 _mirror.SetAnchor(basePosition);
@@ -307,16 +349,20 @@ namespace MirrorExperiment
                 if (!_parameters.Mirror.Enabled || _starField == null)
                     return null;
 
+                if (_cabinLayer < 0)
+                    return $"Mirror.Enabled needs a \"{CabinLayerName}\" layer in Tags and Layers";
+
                 _mirror = CreateChild("RearViewMirror").AddComponent<RearViewMirror>();
             }
 
-            // The stars' material and layer, because the screen has to be visible
-            // to exactly the cameras the stars are visible to.
+            // The stars' material as a template. The cabin layer: always rendered by
+            // the headset camera, so the screen stays in every condition, and never
+            // by the mirror's own cameras.
             _mirror.Configure(
                 _parameters.Mirror,
-                _vrCamera.GetComponent<Camera>(),
+                _headsetCamera,
                 _starField.StarMaterial,
-                _starField.gameObject.layer,
+                _cabinLayer,
                 out string problem);
 
             return problem;
@@ -326,18 +372,50 @@ namespace MirrorExperiment
         /// it off. Returns what is wrong with its settings, or null.
         private string ConfigureFixationPoint()
         {
-            // The stars' layer where there are stars, for the same reason as the
-            // mirror's: visible to exactly the cameras the stars are visible to.
-            int layer = _starField != null ? _starField.gameObject.layer : _vrCamera.gameObject.layer;
-
+            // The cabin layer, so that the mirror does not show it a second time,
+            // reflected. The headset camera's own layer if there is no cabin layer -
+            // then there is no mirror either.
             _fixationPoint.Configure(
                 _parameters.FixationPoint,
                 _parameters.Mirror,
                 _vrCamera,
-                layer,
+                _cabinLayer >= 0 ? _cabinLayer : _vrCamera.gameObject.layer,
                 out string problem);
 
             return problem;
+        }
+
+        /// Shows the stars, or not, to the headset camera - the field seen directly -
+        /// and to the mirror's cameras - the field in the mirror - by the star layer
+        /// in their culling masks. Both on outside the stimulus, so the preview and
+        /// every other view of the scene work as usual.
+        private void ShowStarsTo(bool outside, bool inside)
+        {
+            if (_starField == null)
+                return;
+
+            int bit = 1 << _starField.gameObject.layer;
+
+            SetLayerRendered(_headsetCamera, bit, outside);
+
+            if (_mirror != null)
+                foreach (var camera in _mirror.Cameras)
+                    SetLayerRendered(camera, bit, inside);
+        }
+
+        /// Refuses a run whose conditions need stars there are none of - the log
+        /// says why. Otherwise those trials would run as blank screens.
+        private string FindMissingStars()
+        {
+            if (_starField != null || !_parameters.Conditions.Exists(c => c.Enabled && c.HasAnyVisual))
+                return null;
+
+            return "No star field (see the log for why) but some conditions are visual";
+        }
+
+        private static void SetLayerRendered(Camera camera, int layerBit, bool rendered)
+        {
+            camera.cullingMask = rendered ? camera.cullingMask | layerBit : camera.cullingMask & ~layerBit;
         }
 
         /// The volume that runs EyeMirror, which copies every headset frame into
@@ -360,13 +438,13 @@ namespace MirrorExperiment
             volume.AddPassOfType<EyeMirror>().targetTexture = target;
         }
 
-        /// The star cloud, drawn on the headset camera's own layer. The Inspector's
+        /// The star cloud, on the Stars layer (see StarsLayerName). The Inspector's
         /// debug toggles - AlwaysVisible, PreviewCoherence - are still there on the
         /// object while the app runs, and reset with every Play, so a preview
         /// cannot be left switched on into a real session.
         ///
-        /// Null if the material is missing. There is then no optic flow at all, and
-        /// everything that uses the star field already copes with its absence.
+        /// Null if the material or the layer is missing. There is then no optic flow
+        /// at all, and Start refuses conditions that need it.
         private StarField CreateStarField()
         {
             var material = Resources.Load<Material>(StarMaterialResource);
@@ -377,11 +455,16 @@ namespace MirrorExperiment
                 return null;
             }
 
-            var stars = CreateChild("Stars");
-            stars.layer = _vrCamera.gameObject.layer;
+            int layer = LayerMask.NameToLayer(StarsLayerName);
 
-            if ((_vrCamera.GetComponent<Camera>().cullingMask & (1 << stars.layer)) == 0)
-                Debug.LogWarning($"MirrorExperiment: the headset camera does not render its own layer {LayerMask.LayerToName(stars.layer)} - the stars will not be seen");
+            if (layer < 0)
+            {
+                Debug.LogError($"MirrorExperiment: no \"{StarsLayerName}\" layer in Tags and Layers - no stars will be drawn");
+                return null;
+            }
+
+            var stars = CreateChild("Stars");
+            stars.layer = layer;
 
             var starField = stars.AddComponent<StarField>();
             starField.StarMaterial = material;
@@ -418,13 +501,19 @@ namespace MirrorExperiment
                 return;
             }
 
-            string sceneProblem = ConfigureMirror() ?? ConfigureFixationPoint();
+            string problem = Experiment.FindConditionProblem(_parameters)
+                             ?? FindMissingStars()
+                             ?? ConfigureMirror()
+                             ?? ConfigureFixationPoint();
 
-            if (sceneProblem != null)
+            if (problem != null)
             {
-                _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{sceneProblem}\n");
+                _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{problem}\n");
                 return;
             }
+
+            // A mirror built just now copied the headset camera's culling mask.
+            ShowStarsTo(outside: true, inside: true);
 
             // Everything that carries over between runs is rebuilt here, so a second
             // participant does not need the app restarted. A fresh Experiment also
@@ -577,6 +666,11 @@ namespace MirrorExperiment
 
             _currentTrial = _experiment.PrepareCurrentTrial();
 
+            // Set here, well before the stimulus, so the switch between the Mirror
+            // and the Screen view is over by the time there is anything to see.
+            if (_mirror != null)
+                _mirror.SetView(_currentTrial.Condition.InsideView);
+
             // The stimulus trajectory is defined as starting from MoogNeutralPosition,
             // so if the platform is not believed to be there, commanding it would make
             // it lurch to that assumed origin first. Happens when the platform was
@@ -638,7 +732,7 @@ namespace MirrorExperiment
             yield return new WaitForSeconds((float)_parameters.DelayBetweenMoogAndVr.TotalSeconds);
 
             // --- visual half
-            if (!_currentTrial.HasVisual || _starField == null)
+            if (!_currentTrial.Condition.HasAnyVisual || _starField == null)
             {
                 yield return new WaitForSeconds((float)_parameters.StimulusDuration.TotalSeconds);
             }
@@ -653,6 +747,12 @@ namespace MirrorExperiment
                 // CameraStartPosition, axis-aligned with the world - which is also
                 // the frame the camera trajectory moves in.
                 _starField.Regenerate(CameraHomePosition(), Quaternion.identity);
+
+                // One cloud and one camera motion for both fields: the mirror's
+                // cameras ride with the car, so inside and outside always show the
+                // same movement, reversed in the mirror and not outside it. Which of
+                // the two get to see the stars is the condition's choice.
+                ShowStarsTo(_currentTrial.HasVisualOutside, _currentTrial.HasVisualInside);
                 _starField.Show(_currentTrial.Coherence, _parameters.NoiseUpdateHz);
 
                 var trajectoryManager = new TrajectoryManager(MakeTrajectory(
@@ -676,6 +776,7 @@ namespace MirrorExperiment
                 }
 
                 _starField.Hide();
+                ShowStarsTo(outside: true, inside: true);
             }
 
             _currentTrial.MeasuredStimulusSeconds = Time.realtimeSinceStartup - stimulusStartedAt;
@@ -885,10 +986,27 @@ namespace MirrorExperiment
                 $"trial state: {_trialState}\n" +
                 $"experiment state: {_experimentState}\n" +
                 $"white noise: {_sound?.GetNoiseStatus}\n" +
-                $"mirror: {(!_parameters.Mirror.Enabled ? "off" : _parameters.Mirror.FlipHorizontally ? "on, flipped" : "on, not flipped")}\n" +
+                $"mirror: {DescribeMirror()}\n" +
                 $"star noise: {_parameters.NoiseUpdateHz:F0} Hz asked / {(_starField != null ? _starField.MeasuredNoiseHz.ToString("F1") : "-")} Hz measured";
 
             _experimentTabHandler?.PrintToInfo(info, true);
+        }
+
+        /// What the mirror shows in the current trial. The view changes from trial to
+        /// trial, and the flip only applies to the Screen view - a mirror is always
+        /// reversed.
+        private string DescribeMirror()
+        {
+            if (!_parameters.Mirror.Enabled)
+                return "off";
+
+            if (_currentTrial == null)
+                return "on";
+
+            if (_currentTrial.Condition.InsideView == InsideView.Mirror)
+                return "on, mirror view";
+
+            return _parameters.Mirror.FlipHorizontally ? "on, screen view, flipped" : "on, screen view, not flipped";
         }
 
         private static string DescribeCompletedTrial(Trial trial)
