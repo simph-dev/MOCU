@@ -50,11 +50,11 @@ namespace MirrorExperiment
         /// can be lost from the scene or left disagreeing with the config.
         private Transform _root;
 
-        /// Null until the config first asks for it, so a run without a mirror has
+        /// Null until the config first asks for it, so a run without a screen has
         /// no rear camera costing a render every frame.
-        private RearViewMirror _mirror;
+        private RearView _rearView;
 
-        /// Built in code at startup, like the mirror, and switched off rather than
+        /// Built in code at startup, like the screen, and switched off rather than
         /// destroyed when the config says so.
         private FixationPoint _fixationPoint;
 
@@ -70,11 +70,17 @@ namespace MirrorExperiment
         /// MirrorExperiment/Resources, so a build includes it without the scene.
         private const string StarMaterialResource = "StarMaterial";
 
-        /// The stars have a layer of their own, so that each camera can be shown
-        /// them or not by its culling mask alone: the headset camera for the field
-        /// seen directly, the mirror's camera for the field in the mirror. Any other
+        /// The stars have a layer of their own, so that the headset camera can be
+        /// shown the field seen directly or not by its culling mask alone. Any other
         /// camera - the Scene view, one recording from the side - always sees them.
         private const string StarsLayerName = "Stars";
+
+        /// What the mirror's cameras are shown instead: a share of the same stars,
+        /// drawn a second time on a layer of its own and possibly larger, so that
+        /// stars in the mirror can be made to look like stars seen directly (see
+        /// RearViewSettings.MirrorViewStarFraction). The headset camera never renders
+        /// it, and the mirror's cameras never render the Stars layer.
+        private const string MirrorStarsLayerName = "MirrorStars";
 
         /// The inside of the car - the mirror's screen, its frame, the fixation
         /// point - has a layer of its own too. The headset camera renders it; the
@@ -147,10 +153,6 @@ namespace MirrorExperiment
 
             _starField = CreateStarField();
 
-            // Already here, not only on Start, so that the AlwaysVisible preview
-            // shows the cloud the config describes rather than the Inspector's.
-            _starField?.Configure(_parameters.StarField);
-
             CreateEyeMirrorVolume();
 
             _fixationPoint = CreateChild("FixationPoint").AddComponent<FixationPoint>();
@@ -158,9 +160,14 @@ namespace MirrorExperiment
             // Already here, not only on Start, so they can be looked at in the
             // headset before a run begins. Start reports a bad setting to the
             // researcher; this early there is only the log.
-            foreach (string problem in new[] { ConfigureMirror(), ConfigureFixationPoint() })
+            foreach (string problem in new[] { ConfigureRearView(), ConfigureFixationPoint() })
                 if (problem != null)
                     Debug.LogError($"MirrorExperiment: {problem}");
+
+            // Already here, not only on Start, so that the AlwaysVisible preview
+            // shows the cloud the config describes rather than the Inspector's.
+            // After the screen, whose image says how far its corners reach.
+            _starField?.Configure(_parameters.StarField, StarHoleRadius());
 
             // The headset camera does not render the stars' layer until told to.
             ShowStarsTo(outside: true, inside: true);
@@ -201,8 +208,8 @@ namespace MirrorExperiment
         /// be. Split out so the calibration methods can re-apply the pose without
         /// going through ManagedUpdate and dragging the UI refresh along with it.
         ///
-        /// Also moves what is fixed to the car - the mirror, the clear zone round the
-        /// head and, unless it is set to follow the head, the fixation point. They
+        /// Also moves what is fixed to the car - the mirror and, unless it is set
+        /// to follow the head, the fixation point. They
         /// go where the calibrated eye goes, not where the head is, so they follow
         /// the stimulus trajectory and no head movement.
         private void ApplyCameraPose()
@@ -227,13 +234,11 @@ namespace MirrorExperiment
                 _cameras.position = basePosition + _keyboardHead.Offset - _cameras.rotation * _vrCamera.localPosition;
             }
 
-            if (_mirror != null)
-                _mirror.SetAnchor(basePosition);
+            if (_rearView != null)
+                _rearView.SetAnchor(basePosition);
 
             if (_fixationPoint != null)
                 _fixationPoint.SetCarAnchor(basePosition);
-
-            _starField?.SetClearZoneCenter(basePosition);
         }
 
         // ..........................................................
@@ -339,29 +344,30 @@ namespace MirrorExperiment
             }
         }
 
-        /// Builds the mirror the first time the config asks for one, and from then
+        /// Builds the screen the first time the config asks for one, and from then
         /// on re-applies the config to it - which is also what switches it off.
-        /// Returns what is wrong with the mirror settings, or null.
-        private string ConfigureMirror()
+        /// Returns what is wrong with the rear-view settings, or null.
+        private string ConfigureRearView()
         {
-            if (_mirror == null)
+            if (_rearView == null)
             {
-                if (!_parameters.Mirror.Enabled || _starField == null)
+                if (!_parameters.RearView.Enabled || _starField == null)
                     return null;
 
                 if (_cabinLayer < 0)
-                    return $"Mirror.Enabled needs a \"{CabinLayerName}\" layer in Tags and Layers";
+                    return $"RearView.Enabled needs a \"{CabinLayerName}\" layer in Tags and Layers";
 
-                _mirror = CreateChild("RearViewMirror").AddComponent<RearViewMirror>();
+                if (_starField.MirrorLayer < 0)
+                    return $"RearView.Enabled needs a \"{MirrorStarsLayerName}\" layer in Tags and Layers";
+
+                _rearView = CreateChild("RearView").AddComponent<RearView>();
             }
 
-            // The stars' material as a template. The cabin layer: always rendered by
-            // the headset camera, so the screen stays in every condition, and never
-            // by the mirror's own cameras.
-            _mirror.Configure(
-                _parameters.Mirror,
+            // The cabin layer: always rendered by the headset camera, so the screen
+            // stays in every condition, and never by the screen's own cameras.
+            _rearView.Configure(
+                _parameters.RearView,
                 _headsetCamera,
-                _starField.StarMaterial,
                 _cabinLayer,
                 out string problem);
 
@@ -377,7 +383,7 @@ namespace MirrorExperiment
             // then there is no mirror either.
             _fixationPoint.Configure(
                 _parameters.FixationPoint,
-                _parameters.Mirror,
+                _parameters.RearView,
                 _vrCamera,
                 _cabinLayer >= 0 ? _cabinLayer : _vrCamera.gameObject.layer,
                 out string problem);
@@ -386,21 +392,39 @@ namespace MirrorExperiment
         }
 
         /// Shows the stars, or not, to the headset camera - the field seen directly -
-        /// and to the mirror's cameras - the field in the mirror - by the star layer
-        /// in their culling masks. Both on outside the stimulus, so the preview and
+        /// and to the mirror's cameras - the field in the mirror - by the two star
+        /// layers in their culling masks: each camera only ever its own layer, and
+        /// that one on or off. Both on outside the stimulus, so the preview and
         /// every other view of the scene work as usual.
+        ///
+        /// Also hands the star field the share and scale of the stars the mirror's
+        /// current view asks for, so it is to be called again once the view has
+        /// changed, before anything is shown.
         private void ShowStarsTo(bool outside, bool inside)
         {
             if (_starField == null)
                 return;
 
-            int bit = 1 << _starField.gameObject.layer;
+            int starsBit = 1 << _starField.gameObject.layer;
+            int mirrorStarsBit = _starField.MirrorLayer >= 0 ? 1 << _starField.MirrorLayer : 0;
 
-            SetLayerRendered(_headsetCamera, bit, outside);
+            SetLayerRendered(_headsetCamera, starsBit, outside);
+            SetLayerRendered(_headsetCamera, mirrorStarsBit, false);
 
-            if (_mirror != null)
-                foreach (var camera in _mirror.Cameras)
-                    SetLayerRendered(camera, bit, inside);
+            // Off with the config, the mirror is kept but switched off: then its
+            // share of the stars is not drawn at all.
+            bool mirrorOn = _rearView != null && _rearView.gameObject.activeSelf;
+
+            _starField.SetMirrorStars(mirrorOn ? _rearView.StarFraction : 0f, mirrorOn ? _rearView.StarScale : 1f);
+
+            if (_rearView == null)
+                return;
+
+            foreach (var camera in _rearView.Cameras)
+            {
+                SetLayerRendered(camera, starsBit, false);
+                SetLayerRendered(camera, mirrorStarsBit, inside);
+            }
         }
 
         /// Refuses a run whose conditions need stars there are none of - the log
@@ -469,6 +493,10 @@ namespace MirrorExperiment
             var starField = stars.AddComponent<StarField>();
             starField.StarMaterial = material;
 
+            // -1 if the layer is missing. Only the mirror needs it, and refuses to
+            // be built without it (ConfigureRearView).
+            starField.MirrorLayer = LayerMask.NameToLayer(MirrorStarsLayerName);
+
             return starField;
         }
 
@@ -503,17 +531,19 @@ namespace MirrorExperiment
 
             string problem = Experiment.FindConditionProblem(_parameters)
                              ?? FindMissingStars()
-                             ?? ConfigureMirror()
+                             ?? ConfigureRearView()
                              ?? ConfigureFixationPoint();
+
+            // Before giving up on a bad config, not after: a mirror configured just
+            // now copied the headset camera's culling mask, star layers and all,
+            // whether or not what came after it passed.
+            ShowStarsTo(outside: true, inside: true);
 
             if (problem != null)
             {
                 _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{problem}\n");
                 return;
             }
-
-            // A mirror built just now copied the headset camera's culling mask.
-            ShowStarsTo(outside: true, inside: true);
 
             // Everything that carries over between runs is rebuilt here, so a second
             // participant does not need the app restarted. A fresh Experiment also
@@ -533,7 +563,7 @@ namespace MirrorExperiment
             if (_starField != null)
             {
                 _starField.Hide();
-                _starField.Configure(_parameters.StarField);
+                _starField.Configure(_parameters.StarField, StarHoleRadius());
             }
 
             CanUseUpdateMethod = true;
@@ -668,8 +698,13 @@ namespace MirrorExperiment
 
             // Set here, well before the stimulus, so the switch between the Mirror
             // and the Screen view is over by the time there is anything to see.
-            if (_mirror != null)
-                _mirror.SetView(_currentTrial.Condition.InsideView);
+            if (_rearView != null)
+            {
+                _rearView.SetView(_currentTrial.Condition.InsideView);
+
+                // The new view may show another share of the stars, at another size.
+                ShowStarsTo(outside: true, inside: true);
+            }
 
             // The stimulus trajectory is defined as starting from MoogNeutralPosition,
             // so if the platform is not believed to be there, commanding it would make
@@ -744,14 +779,15 @@ namespace MirrorExperiment
                 // starts with and park the eye at CameraStartPosition, and to cancel
                 // the head's yaw so that the participant's straight-ahead lines up
                 // with world +Z. So after calibration the cloud belongs at
-                // CameraStartPosition, axis-aligned with the world - which is also
+                // CameraStartPosition, its axis upright in the world - which is also
                 // the frame the camera trajectory moves in.
-                _starField.Regenerate(CameraHomePosition(), Quaternion.identity);
+                _starField.Regenerate(CameraHomePosition());
 
-                // One cloud and one camera motion for both fields: the mirror's
+                // One cloud and one camera motion for both fields: the screen's
                 // cameras ride with the car, so inside and outside always show the
-                // same movement, reversed in the mirror and not outside it. Which of
-                // the two get to see the stars is the condition's choice.
+                // same movement - behind the car on the screen, as a car's mirror or
+                // parking display shows it, and ahead of it outside. Which of the
+                // two get to see the stars is the condition's choice.
                 ShowStarsTo(_currentTrial.HasVisualOutside, _currentTrial.HasVisualInside);
                 _starField.Show(_currentTrial.Coherence, _parameters.NoiseUpdateHz);
 
@@ -775,6 +811,9 @@ namespace MirrorExperiment
                     yield return null;
                 }
 
+                // Both in the same frame is safe only because StarField draws in
+                // LateUpdate, after this coroutine: hidden now, the cloud is not
+                // drawn into the masks put back now.
                 _starField.Hide();
                 ShowStarsTo(outside: true, inside: true);
             }
@@ -856,10 +895,6 @@ namespace MirrorExperiment
 
         // ..........................................................
 
-        /// Platform displacement for an already-transformed physical heading. The
-        /// transform itself lives in Trial, so that the trial record carries the
-        /// direction the participant was actually carried in, and so that vestibular
-        /// scoring and the platform command cannot drift apart.
         /// Where the eye sits once calibrated, in world coordinates.
         private Vector3 CameraHomePosition()
         {
@@ -869,6 +904,32 @@ namespace MirrorExperiment
                 _parameters.CameraStartPosition.Surge);
         }
 
+        /// The hole in the middle of the star torus: the furthest corner of the
+        /// screen, frame and all, plus however far a trial carries the car, plus a
+        /// star. The torus is made where the car starts and the car may go that far
+        /// in any direction, so wherever it is on its way no star is between the
+        /// eye and the screen, nor touching its corners - and none can be, whatever
+        /// the head does inside the car.
+        ///
+        /// The corners are the built screen's, whose image says how high it is.
+        /// With no screen built, the plain rectangle the settings describe stands
+        /// in: the screen is where the car's inside ends either way.
+        private float StarHoleRadius()
+        {
+            float travel = _parameters.Distance * Mathf.Abs(_parameters.VisualDistanceMultiplier);
+            float star = Mathf.Max(_parameters.StarField.StarWidth, _parameters.StarField.StarHeight);
+
+            float corner = _rearView != null && _rearView.gameObject.activeSelf && _rearView.FurthestCornerDistance > 0f
+                ? _rearView.FurthestCornerDistance
+                : _parameters.RearView.FurthestCornerDistance();
+
+            return corner + travel + star;
+        }
+
+        /// Platform displacement for an already-transformed physical heading. The
+        /// transform itself lives in Trial, so that the trial record carries the
+        /// direction the participant was actually carried in, and so that vestibular
+        /// scoring and the platform command cannot drift apart.
         private DofParameters HeadingToMoogDisplacement(float physicalHeadingDegrees)
         {
             float rad = physicalHeadingDegrees * Mathf.Deg2Rad;
@@ -986,27 +1047,37 @@ namespace MirrorExperiment
                 $"trial state: {_trialState}\n" +
                 $"experiment state: {_experimentState}\n" +
                 $"white noise: {_sound?.GetNoiseStatus}\n" +
-                $"mirror: {DescribeMirror()}\n" +
+                $"rear view: {DescribeRearView()}\n" +
+                $"head: {DescribeHead()}\n" +
                 $"star noise: {_parameters.NoiseUpdateHz:F0} Hz asked / {(_starField != null ? _starField.MeasuredNoiseHz.ToString("F1") : "-")} Hz measured";
 
             _experimentTabHandler?.PrintToInfo(info, true);
         }
 
-        /// What the mirror shows in the current trial. The view changes from trial to
-        /// trial, and the flip only applies to the Screen view - a mirror is always
-        /// reversed.
-        private string DescribeMirror()
+        /// How the screen is filled in the current trial: the view changes from
+        /// trial to trial.
+        private string DescribeRearView()
         {
-            if (!_parameters.Mirror.Enabled)
+            if (!_parameters.RearView.Enabled)
                 return "off";
 
             if (_currentTrial == null)
                 return "on";
 
-            if (_currentTrial.Condition.InsideView == InsideView.Mirror)
-                return "on, mirror view";
+            return _currentTrial.Condition.InsideView == InsideView.Mirror ? "on, mirror view" : "on, screen view";
+        }
 
-            return _parameters.Mirror.FlipHorizontally ? "on, screen view, flipped" : "on, screen view, not flipped";
+        /// Where the eye is relative to its place in the car, in centimeters. It
+        /// changes as the participant leans in the chair, while the car - the
+        /// screen, the fixation point - stays put. If it does not change, the
+        /// headset is tracking its rotation only, not its position, and the whole
+        /// scene follows the head about.
+        private string DescribeHead()
+        {
+            Vector3 eyePlace = CameraHomePosition() + new Vector3(_cameraOffset.Sway, 0f, _cameraOffset.Surge);
+            Vector3 cm = (_vrCamera.position - eyePlace) * 100f;
+
+            return $"{cm.x:+0;-0;0} right, {cm.y:+0;-0;0} up, {cm.z:+0;-0;0} forward (cm from its place in the car)";
         }
 
         private static string DescribeCompletedTrial(Trial trial)

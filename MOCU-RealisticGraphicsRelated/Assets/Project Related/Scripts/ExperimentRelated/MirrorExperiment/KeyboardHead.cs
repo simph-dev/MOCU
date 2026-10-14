@@ -5,13 +5,13 @@ using UnityEngine.InputSystem;
 namespace MirrorExperiment
 {
     /// Debug only: moves the head with the keyboard, so that the mirror's parallax,
-    /// the clear zone and the like can be checked without walking round the room in
-    /// the headset - or, on a laptop, without a headset at all.
+    /// the hole in the stars and the like can be checked without walking round the
+    /// room in the headset - or, on a laptop, without a headset at all.
     ///
     /// While it is active, the headset's own position is ignored and this one is
-    /// used instead; the headset's rotation still counts. The car - the mirror, the
-    /// clear zone, a fixation point fixed to the body or the mirror - stays where it
-    /// is, as it does when a participant moves their head.
+    /// used instead; the headset's rotation still counts. The car - the screen, a
+    /// fixation point fixed to the body or the mirror - stays where it is, and so do
+    /// the stars, as they do when a participant moves their head.
     ///
     ///     W S     forward, back - along where the head is looking, kept level
     ///     A D     left, right

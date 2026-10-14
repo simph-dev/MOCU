@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 using Newtonsoft.Json;
 
 
@@ -9,15 +7,15 @@ namespace MirrorExperiment
     /// of the trials, and they are interleaved.
     ///
     /// The set of conditions is a list in Parameters, not a fixed enum, so the same
-    /// code runs the paper's five-condition design and a single-condition design
+    /// code runs the default seven-condition design and a single-condition design
     /// without changes.
     ///
     /// Three cues, each switched on or off per condition - which gives the three
     /// unimodal, three bimodal and one trimodal combination:
     ///
-    ///     HasVisualInside     the optic flow seen in the mirror (mirror-reversed)
-    ///     HasVisualOutside    the optic flow seen directly, round the mirror (not)
-    ///     HasVestibular       the platform
+    ///     HasVisualInside     cen: the optic flow on the screen in the centre
+    ///     HasVisualOutside    per: the optic flow seen directly, in the periphery
+    ///     HasVestibular       ves: the platform
     ///
     /// Every trial has the same structure regardless of condition. The flags only
     /// decide what is left out: a visual field that is off has no stars in it, no
@@ -31,14 +29,14 @@ namespace MirrorExperiment
         /// without deleting it and having to type it back later.
         public bool Enabled { get; set; } = true;
 
-        /// Stars in the mirror. Needs Mirror.Enabled.
+        /// Stars on the screen. Needs RearView.Enabled.
         public bool HasVisualInside { get; set; } = false;
 
-        /// How the mirror shows them: Mirror (a picture for each eye, a real
-        /// mirror) or Screen (one flat picture, a parking screen). Per condition,
-        /// so the two can be interleaved in one run, each with its own staircase.
-        /// See InsideView.
-        public InsideView InsideView { get; set; } = InsideView.Mirror;
+        /// How the screen shows them: Screen (one flat picture, a parking display)
+        /// or Mirror (a picture for each eye, a real mirror). Per condition, so the
+        /// two can be interleaved in one run, each with its own staircase. See
+        /// InsideView.
+        public InsideView InsideView { get; set; } = InsideView.Screen;
 
         /// Stars seen directly, everywhere the mirror does not cover.
         public bool HasVisualOutside { get; set; } = true;
@@ -51,8 +49,8 @@ namespace MirrorExperiment
 
         /// Visual/vestibular conflict in degrees: the vestibular heading is offset
         /// by +Delta/2 and the visual heading - both visual fields - by -Delta/2.
-        /// Only meaningful when a visual field and the platform are both present,
-        /// and 0 means they agree.
+        /// Only applied when a visual field and the platform are both present -
+        /// ignored otherwise, whatever it says - and 0 means they agree.
         ///
         /// Conditions come in pairs of opposite sign (+6 and -6) so that the
         /// participant's personal bias cancels: the weighting effect flips sign
@@ -71,32 +69,30 @@ namespace MirrorExperiment
         [JsonIgnore]
         public bool HasAnyVisual => HasVisualInside || HasVisualOutside;
 
-        /// Human-readable name for logs and the UI tab, e.g.
-        /// "Visual-in-mirror+Vestibular 65% delta=+6".
+        /// Human-readable name for logs and the UI tab, in the design's own terms:
+        /// vis or comb (visual alone, or with the platform), then per, cen or both,
+        /// or ves for the platform alone. E.g. "comb cen 65% delta=+6", or with
+        /// the real mirror on the screen, "vis cen (mirror) 100%".
         public string Label
         {
             get
             {
-                var cues = new List<string>();
+                string field = HasVisualInside && HasVisualOutside ? "both"
+                    : HasVisualInside ? "cen"
+                    : HasVisualOutside ? "per"
+                    : null;
 
-                if (HasVisualInside)
-                    cues.Add($"Visual-in-{InsideView.ToString().ToLowerInvariant()}");
+                if (field == null)
+                    return HasVestibular ? "ves" : "empty";
 
-                if (HasVisualOutside)
-                    cues.Add("Visual-out");
+                string label = $"{(HasVestibular ? "comb" : "vis")} {field}";
+
+                if (HasVisualInside && InsideView == InsideView.Mirror)
+                    label += " (mirror)";
+
+                label += $" {Coherence * 100f:F0}%";
 
                 if (HasVestibular)
-                    cues.Add("Vestibular");
-
-                if (cues.Count == 0)
-                    return "Empty";
-
-                string label = string.Join("+", cues);
-
-                if (HasAnyVisual)
-                    label += $" {Coherence * 100f:F0}%";
-
-                if (HasAnyVisual && HasVestibular)
                     label += $" delta={(Delta >= 0f ? "+" : "")}{Delta:0.#}";
 
                 return label;

@@ -10,11 +10,11 @@ namespace MirrorExperiment
     {
         public bool Enabled { get; set; } = true;
 
-        /// What the dot is fixed to: Body, Mirror or Head. See FixationAnchor.
-        public FixationAnchor Anchor { get; set; } = FixationAnchor.Body;
+        /// What the dot is fixed to: Car, Screen or Head. See FixationAnchor.
+        public FixationAnchor Anchor { get; set; } = FixationAnchor.Car;
 
-        /// How far straight ahead of the eye the dot hangs, in meters. Used by Body
-        /// and Head; at Mirror the dot sits on the centre of the screen instead.
+        /// How far straight ahead of the eye the dot hangs, in meters. Used by Car
+        /// and Head; at Screen the dot sits on the centre of the screen instead.
         public float Distance { get; set; } = 0.66f;
 
         /// Diameter in meters. 1 cm at 0.66 m is 0.87 degrees.

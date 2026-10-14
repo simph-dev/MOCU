@@ -1,22 +1,30 @@
 namespace MirrorExperiment
 {
-    /// Geometry of the star cloud. Plain floats rather than Vector3, because Unity's
-    /// vector types serialise badly through Newtonsoft - they carry computed
-    /// properties like normalized and magnitude that have no business in a config file.
+    /// The star cloud: a ring lying round the participant at eye height, its axis
+    /// upright through the eye's calibrated place, with a square cross-section - a
+    /// thick-walled tube, cut as high as it is thick. Stars all the way round:
+    /// ahead for the field seen directly, behind for the screen, so that whatever
+    /// the heading, the car moves through stars on every side.
     ///
-    /// Defaults are the paper's, except the star size: see README.md.
+    /// Made at the start of every trial and left where it is while the car moves
+    /// through it. Nothing is added to it or taken from it on the way, so no star
+    /// appears or vanishes as the car moves; only the noise moves stars about.
+    ///
+    /// The hole in the middle is not set here. It is worked out from the screen and
+    /// the trial's travel (ExperimentHandler.StarHoleRadius), so that no star ever
+    /// comes between the eye and the screen, wherever the trial takes the car.
+    ///
+    /// Plain floats rather than Vector3, because Unity's vector types serialise
+    /// badly through Newtonsoft - they carry computed properties like normalized
+    /// and magnitude that have no business in a config file.
     public class StarFieldSettings
     {
-        /// Cloud dimensions in meters. The paper's 130 x 130 x 100 cm.
-        public float VolumeWidth { get; set; } = 1.30f;
-        public float VolumeHeight { get; set; } = 1.30f;
-        public float VolumeDepth { get; set; } = 1.00f;
+        /// How thick the ring is, in meters: the side of its square cross-section.
+        /// The stars reach this much further out than the hole, and from half of
+        /// it below eye height to half of it above, at every distance alike.
+        public float TorusWidth { get; set; } = 1.0f;
 
-        /// How far in front of the participant the cloud is centred, in meters.
-        public float DistanceToCloudCenter { get; set; } = 0.66f;
-
-        /// Stars per cubic meter. 1250 is the paper's 0.00125 per cm^3, which over
-        /// the default volume works out to 2112 triangles.
+        /// Stars per cubic meter. 1250 is the paper's 0.00125 per cm^3.
         public float DensityPerCubicMeter { get; set; } = 1250f;
 
         /// Triangle bounding box in meters. The paper used 0.005 (0.5 cm); that is
@@ -26,16 +34,13 @@ namespace MirrorExperiment
         public float StarWidth { get; set; } = 0.01f;
         public float StarHeight { get; set; } = 0.01f;
 
-        /// No star is drawn closer than this to the eye, in meters; 0 for no limit.
-        /// The zone is a sphere on the eye's calibrated place, the inside of a car:
-        /// it travels with the stimulus trajectory, not with the head, the mirror
-        /// hangs within it and everything that moves is outside. Keep it larger
-        /// than Mirror.Distance, or stars pass in front of the screen.
+        /// False, as in the earlier experiments: every star faces straight ahead.
+        /// Those straight to the sides are then seen edge-on, and all but vanish;
+        /// those ahead and behind are seen face-on.
         ///
-        /// In effect a spherical near clip: stars vanish as the zone reaches them
-        /// and reappear once it has passed. The nearest stars are the ones whose
-        /// flow is fastest, so this changes the stimulus - and the cloud has to
-        /// reach well beyond the radius, or the zone swallows most of it.
-        public float ClearRadius { get; set; } = 0f;
+        /// True: each star is turned to face the eye's place where it is put - at
+        /// the start of the trial, or wherever the noise moves it - and does not
+        /// turn after that, so as the car moves the stars stay as still as ever.
+        public bool StarsFaceCenter { get; set; } = false;
     }
 }

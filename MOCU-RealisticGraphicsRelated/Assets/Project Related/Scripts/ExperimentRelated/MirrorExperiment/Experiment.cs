@@ -61,8 +61,8 @@ namespace MirrorExperiment
                 if (!condition.HasAnyVisual && !condition.HasVestibular)
                     return $"Condition {i} has no cue enabled - it would run {config.TrialsPerCondition} blank trials";
 
-                if (condition.HasVisualInside && !config.Mirror.Enabled)
-                    return $"Condition {i} shows stars in the mirror, but Mirror.Enabled is false";
+                if (condition.HasVisualInside && !config.RearView.Enabled)
+                    return $"Condition {i} shows stars on the rear-view screen, but RearView.Enabled is false";
             }
 
             if (!config.Conditions.Exists(c => c.Enabled))

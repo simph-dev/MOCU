@@ -10,19 +10,22 @@ namespace MirrorExperiment
     {
         // ---- trial structure ------------------------------------------------------------------
 
-        public int TrialsPerCondition                       { get; set; } = 80;     // 5 conditions -> 400 trials
+        public int TrialsPerCondition                       { get; set; } = 80;     // 7 conditions -> 560 trials
 
-        /// The conditions to run, interleaved, one staircase each. This is the
-        /// paper's five-condition design, with its visual cue as the field seen
-        /// directly; replace the list to run anything else, down to a single
-        /// combined condition. See ConditionSettings for the three cues.
+        /// The conditions to run, interleaved, one staircase each: every visual
+        /// field on its own and both together, with the platform and without, and
+        /// the platform alone - per being the stars seen directly, cen the ones on
+        /// the screen. Replace the list to run anything else, down to a single
+        /// condition. See ConditionSettings for the three cues.
         public List<ConditionSettings> Conditions            { get; set; } = new List<ConditionSettings>
         {
-            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = false },
-            new() { Enabled = true, HasVestibular = false, HasVisualOutside = true,  Coherence = 1.00f },
-            new() { Enabled = true, HasVestibular = false, HasVisualOutside = true,  Coherence = 0.65f },
-            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = true,  Coherence = 0.65f, Delta = +6f },
-            new() { Enabled = true, HasVestibular = true,  HasVisualOutside = true,  Coherence = 0.65f, Delta = -6f },
+            new() { HasVisualOutside = true,  HasVisualInside = false, HasVestibular = false },     // vis per
+            new() { HasVisualOutside = false, HasVisualInside = true,  HasVestibular = false },     // vis cen
+            new() { HasVisualOutside = true,  HasVisualInside = true,  HasVestibular = false },     // vis both
+            new() { HasVisualOutside = false, HasVisualInside = false, HasVestibular = true  },     // ves
+            new() { HasVisualOutside = true,  HasVisualInside = false, HasVestibular = true  },     // comb per
+            new() { HasVisualOutside = false, HasVisualInside = true,  HasVestibular = true  },     // comb cen
+            new() { HasVisualOutside = true,  HasVisualInside = true,  HasVestibular = true  },     // comb both
         };
 
         /// Heading magnitude at difficulty level 0, degrees. Every level multiplies
@@ -47,15 +50,13 @@ namespace MirrorExperiment
         public float ProfileSigmas                          { get; set; } = 3f;     // gives peak v 0.31 m/s, peak a 1.12 m/s^2
 
         /// Where each cue actually travels, relative to the nominal heading. See
-        /// HeadingTransform. By default both go the same way: backward, with a
-        /// nominal heading to the right going back-right. The scene is physically
-        /// truthful and the reversal comes from the rear-view mirror, which being a
-        /// real mirror (Mirror.FlipHorizontally) shows back-right as forward-right.
-        ///
-        /// For the earlier design without a mirror - optic flow forward, platform
-        /// reversed - set VisualTransform to { Rotation 0, SwapLeftRight false }.
-        public HeadingTransform VisualTransform             { get; set; } = new HeadingTransform { Rotation = 180f, SwapLeftRight = true };
-        public HeadingTransform VestibularTransform         { get; set; } = new HeadingTransform { Rotation = 180f, SwapLeftRight = true };
+        /// HeadingTransform. By default both go forward along the nominal heading,
+        /// as a car does: the platform, and the camera with it. The field seen
+        /// directly then flows as driving forward does, and the screen, looking
+        /// back like a parking camera, shows the scene behind receding - the same
+        /// motion, seen from the back of the car.
+        public HeadingTransform VisualTransform             { get; set; } = new HeadingTransform { Rotation = 0f, SwapLeftRight = false };
+        public HeadingTransform VestibularTransform         { get; set; } = new HeadingTransform { Rotation = 0f, SwapLeftRight = false };
 
         /// VR travel can be scaled relative to the physical travel. 1 = identical.
         public float VisualDistanceMultiplier               { get; set; } = 1f;
@@ -71,16 +72,17 @@ namespace MirrorExperiment
         /// the coherence value cannot simply be carried over.
         public float NoiseUpdateHz                          { get; set; } = 60f;
 
-        /// Geometry of the cloud. Everything except the material, which is
-        /// Resources/StarMaterial, and the debug toggles, which are on the Stars
-        /// object's Inspector while the app runs.
+        /// The torus of stars round the participant: its width, density and star
+        /// size. Its hole is worked out from Mirror and Distance. The material is
+        /// Resources/StarMaterial, and the debug toggles are on the Stars object's
+        /// Inspector while the app runs.
         public StarFieldSettings StarField                  { get; set; } = new StarFieldSettings();
 
         // ---- mirror ---------------------------------------------------------------------------
 
-        /// The rear-view mirror screen. Off by default. See MirrorSettings, and
-        /// README.md for which way left and right end up.
-        public MirrorSettings Mirror                        { get; set; } = new MirrorSettings();
+        /// The rear-view screen. On by default. See RearViewSettings, and README.md
+        /// for which way left and right end up.
+        public RearViewSettings RearView                    { get; set; } = new RearViewSettings();
 
         // ---- fixation -------------------------------------------------------------------------
 

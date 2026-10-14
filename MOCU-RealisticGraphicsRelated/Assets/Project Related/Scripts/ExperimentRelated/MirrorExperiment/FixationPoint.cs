@@ -32,7 +32,7 @@ namespace MirrorExperiment
 
         /// Takes everything from the config; called at startup and on every Start.
         /// Returns false, and changes nothing, if the material cannot be found.
-        public bool Configure(FixationPointSettings settings, MirrorSettings mirror, Transform head, int layer,
+        public bool Configure(FixationPointSettings settings, RearViewSettings rearView, Transform head, int layer,
                               out string problem)
         {
             problem = null;
@@ -50,8 +50,8 @@ namespace MirrorExperiment
 
             _head = head;
             _anchor = settings.Anchor;
-            _offset = settings.Anchor == FixationAnchor.Mirror
-                ? mirror.ScreenCenter()
+            _offset = settings.Anchor == FixationAnchor.Screen
+                ? rearView.ScreenCenter()
                 : new Vector3(0f, 0f, settings.Distance);
 
             gameObject.layer = layer;
@@ -61,8 +61,8 @@ namespace MirrorExperiment
         }
 
         /// The eye's place in the car: the calibrated home plus the camera
-        /// trajectory. Supplied every frame, together with the camera rig. Body and
-        /// Mirror hang off it; Head ignores it.
+        /// trajectory. Supplied every frame, together with the camera rig. Car and
+        /// Screen hang off it; Head ignores it.
         public void SetCarAnchor(Vector3 eyePlace)
         {
             _carEye = eyePlace;

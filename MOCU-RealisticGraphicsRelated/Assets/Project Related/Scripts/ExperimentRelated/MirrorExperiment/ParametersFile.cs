@@ -18,9 +18,10 @@ namespace MirrorExperiment
         ///
         /// Json.NET's default for a collection property that already holds a value is
         /// to populate INTO it - i.e. Add - rather than swap it out. Parameters.Conditions
-        /// is initialised with the paper's five conditions in its field initialiser, so
-        /// with the default handling a config file listing five conditions yields ten:
-        /// the five built-in ones, all enabled, followed by whatever the file says.
+        /// is initialised with the seven default conditions in its field initialiser, so
+        /// with the default handling a config file listing seven conditions yields
+        /// fourteen: the seven built-in ones, all enabled, followed by whatever the file
+        /// says.
         private static readonly JsonSerializerSettings ReadSettings = new()
         {
             ObjectCreationHandling = ObjectCreationHandling.Replace

@@ -7,14 +7,16 @@ namespace MirrorExperiment
         /// A real mirror: a camera for each eye, at that eye reflected in the glass,
         /// looking through the glass at the scene behind. Each eye gets its own
         /// picture, so there is depth behind the glass and parallax as the head
-        /// moves - the same as for the field seen directly. Always reversed left to
-        /// right, as glass is. The default.
+        /// moves - the same as for the field seen directly.
         Mirror,
 
         /// A flat picture from one camera looking back, the same for both eyes and
-        /// independent of the head: a parking screen. Reversed or not by
-        /// Mirror.FlipHorizontally; its camera can be moved and tilted
-        /// (Mirror.ScreenCamera*).
+        /// independent of the head: a car's parking display. Its camera sits at the
+        /// eye, so the stars on it look the size they do seen directly; it can be
+        /// moved and tilted (RearView.ScreenCamera*). The default.
+        ///
+        /// Both views are mirror-reversed, as a car's mirror and its parking
+        /// display both are.
         Screen
     }
 }

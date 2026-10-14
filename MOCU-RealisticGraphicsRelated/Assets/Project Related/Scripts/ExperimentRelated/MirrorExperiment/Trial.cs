@@ -17,14 +17,14 @@ namespace MirrorExperiment
     ///     PhysicalVisualHeading       where the optic flow actually goes
     ///     PhysicalVestibularHeading   where the platform actually carries you
     ///
-    /// Worked example - Heading +16, Delta +6, transforms without the swap (visual
-    /// 0 degrees, vestibular 180):
+    /// Worked example - Heading +16, Delta +6, the default transforms (both left
+    /// alone):
     ///
     ///     Heading                   = +16     staircase
     ///     VisualHeading             = +13     16 - 6/2
     ///     VestibularHeading         = +19     16 + 6/2
-    ///     PhysicalVisualHeading     = +13     rotation 0, unchanged
-    ///     PhysicalVestibularHeading =  199    19 + 180
+    ///     PhysicalVisualHeading     = +13     the camera - and so both visual fields
+    ///     PhysicalVestibularHeading = +19     the platform
     ///
     /// Angle convention: Surge = D*cos(theta), Sway = D*sin(theta). So 0 is straight
     /// ahead, +90 is straight right, 180 is straight back.
@@ -50,7 +50,11 @@ namespace MirrorExperiment
         public int Difficulty { get; private set; } = 0;
 
         public float Coherence => Condition.Coherence;
-        public float Delta => Condition.Delta;
+        /// The condition's Delta where there are two cues for it to split - a
+        /// visual field and the platform - and 0 everywhere else. A Delta left on a
+        /// visual or vestibular condition would otherwise shift its only cue by
+        /// half of it, while the answer is still graded against the nominal heading.
+        public float Delta => Condition.HasAnyVisual && Condition.HasVestibular ? Condition.Delta : 0f;
 
         public float VisualHeading => Heading - Delta / 2f;
         public float VestibularHeading => Heading + Delta / 2f;
