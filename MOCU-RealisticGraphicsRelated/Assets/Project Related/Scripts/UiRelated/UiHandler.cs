@@ -88,7 +88,9 @@ public class UiHandler : ManagedMonoBehaviour
         ((VisualElement)mainUiScreen.elements.window.modals.confirmCloseBtn).RegisterCallback<ClickEvent>(eventObj  => { ConfirmGameQuit(); });
         ((VisualElement)mainUiScreen.elements.window.modals.cancelCloseBtn).RegisterCallback<ClickEvent>(eventObj   => { CancelGameQuit(); });
 
-        ((VisualElement)secondaryUiScreen.elements.window.modals.minimizeBtn).RegisterCallback<ClickEvent>(eventObj => { MinimizeSecondDisplay(); });
+        // In single display mode secondaryUiScreen is mainUiScreen, so this would be the same button
+        if (_InDualDisplayMode)
+            ((VisualElement)secondaryUiScreen.elements.window.modals.minimizeBtn).RegisterCallback<ClickEvent>(eventObj => { MinimizeSecondDisplay(); });
     }
 
     private void TabHasBeenClicked(VisualElement clickedTab)
@@ -166,6 +168,9 @@ public class UiHandler : ManagedMonoBehaviour
     private void MinimizeGame() {
         // Firstly minimizes main display
         WinAPI.MinimizeGameWindow();
+
+        // Single display: the "second display btn" is this same btn, so the click below would call MinimizeGame again (endless recursion)
+        if (!_InDualDisplayMode) return;
 
         // And after that -- second display (imitates click on second display btn. unity somehow knows which screen minimize, but can't minimize both automaticaly)
         var clickEvent = new ClickEvent();
