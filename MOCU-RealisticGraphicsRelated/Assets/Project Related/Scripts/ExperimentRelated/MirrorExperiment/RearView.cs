@@ -8,7 +8,7 @@ namespace MirrorExperiment
 {
     /// The rear view: a flat screen in front of the participant showing the scene
     /// behind them, mirror-reversed, drawn as any image - a car's mirror, a parking
-    /// display - whose green part is the glass (RearViewSettings.ScreenImage). Two
+    /// display - whose green part is the glass (RearViewSettings.ScreenImage). Three
     /// ways of filling the glass, switched per trial (SetView, InsideView):
     ///
     ///     Screen   one camera at the eye's place looking straight back, the same
@@ -17,6 +17,9 @@ namespace MirrorExperiment
     ///     Mirror   a camera for each eye, at that eye reflected in the glass, looking
     ///              back through the glass. Each eye gets its own picture: depth
     ///              behind the glass, parallax as the head moves - a real mirror.
+    ///     Forward  the Screen view's camera turned round to look forward, at the
+    ///              screen's centre, and not reversed: a flat window onto the
+    ///              scene ahead. Not a rear view at all, but the same screen.
     ///
     /// Nothing of it lives in the scene. The screen, the cameras and the textures
     /// between them are all built here from RearViewSettings, so the config file is
@@ -79,6 +82,7 @@ namespace MirrorExperiment
         private InsideView _view = InsideView.Screen;
         private float _width;
         private float _height;
+        private Vector3 _center;
         private float _farClip;
         private bool _warnedAboutEyes;
 
@@ -198,6 +202,7 @@ namespace MirrorExperiment
             // field of view depends on. It does not turn after the gaze.
             Vector3 center = settings.ScreenCenter();
             float distance = center.magnitude;
+            _center = center;
 
             _screen.gameObject.layer = cabinLayer;
             _screen.localPosition = center;
@@ -227,11 +232,10 @@ namespace MirrorExperiment
                 }
             }
 
-            // The Screen view's camera: at the eye's place looking straight back,
-            // unless the config moves or tilts it. Positive pitch looks down.
+            // The Screen and Forward views' camera: at the eye's place, unless the
+            // config moves it. Which way it looks is the view's (SetView).
             _screenCamera.transform.localPosition = new Vector3(
                 settings.ScreenCameraOffsetRight, settings.ScreenCameraOffsetUp, -settings.ScreenCameraOffsetBack);
-            _screenCamera.transform.localRotation = Quaternion.Euler(settings.ScreenCameraPitch, 180f, 0f);
 
             float magnification = Mathf.Max(0.01f, settings.Magnification);
             float verticalFov = 2f * Mathf.Atan(_height / 2f / (distance * magnification)) * Mathf.Rad2Deg;
@@ -264,16 +268,7 @@ namespace MirrorExperiment
                       $"{distance:F2} m - {Mathf.Atan(_width / 2f / distance) * Mathf.Rad2Deg:F1} deg either side " +
                       $"and {Mathf.Atan(_height / 2f / distance) * Mathf.Rad2Deg:F1} deg up and down, frame and all");
 
-            // Texture coordinate at the participant's left edge of the screen. The
-            // cameras look back, so their own left is the participant's right: 1
-            // here reverses the picture, as glass does - and as a car's parking
-            // display does too. Both views, always: so what is behind the car to
-            // its left shows on the left, and stars drift across the screen the
-            // same way as they do outside it. Done in the mesh rather than on the
-            // cameras: flipping a projection also flips triangle winding, and with
-            // it which faces get culled.
-            BuildQuad(_screenMesh, _width, _height, 1f);
-
+            // The quad is built, and the camera turned, by the view.
             SetView(_view);
 
             return true;
@@ -289,23 +284,43 @@ namespace MirrorExperiment
             transform.SetPositionAndRotation(eyePlace, Quaternion.identity);
         }
 
-        /// Which of the two views the screen shows. Only that view's cameras render,
-        /// so the other costs nothing. Called before every trial, since conditions
-        /// of both kinds can be interleaved.
+        /// Which of the views the screen shows. Only that view's cameras render, so
+        /// the others cost nothing. Called before every trial, since conditions of
+        /// every kind can be interleaved.
         public void SetView(InsideView view)
         {
             _view = view;
 
-            if (_screenCamera == null)
+            if (_screenCamera == null || _settings == null)
                 return;
 
             bool mirror = view == InsideView.Mirror;
+            bool forward = view == InsideView.Forward;
 
             _screenCamera.enabled = !mirror;
             _leftEyeCamera.enabled = mirror;
             _rightEyeCamera.enabled = mirror;
 
             _screenRenderer.sharedMaterial = mirror ? _stereoMaterial : _screenMaterial;
+
+            // Positive pitch looks down, either way round. Looking back, the camera
+            // looks straight back; looking forward, it looks at the screen's centre,
+            // which the screen faces square on - so its symmetric frustum is cut to
+            // the screen exactly, and the screen is a true window.
+            _screenCamera.transform.localRotation = forward
+                ? Quaternion.LookRotation(_center) * Quaternion.Euler(_settings.ScreenCameraPitch, 0f, 0f)
+                : Quaternion.Euler(_settings.ScreenCameraPitch, 180f, 0f);
+
+            // Texture coordinate at the participant's left edge of the screen. The
+            // rear cameras look back, so their own left is the participant's right:
+            // 1 here reverses the picture, as glass does - and as a car's parking
+            // display does too. Both rear views, always: so what is behind the car
+            // to its left shows on the left, and stars drift across the screen the
+            // same way as they do outside it. Looking forward there is nothing to
+            // reverse. Done in the mesh rather than on the cameras: flipping a
+            // projection also flips triangle winding, and with it which faces get
+            // culled.
+            BuildQuad(_screenMesh, _width, _height, forward ? 0f : 1f);
 
             if (mirror)
                 AimEyeCameras();

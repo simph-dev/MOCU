@@ -1,7 +1,7 @@
 namespace MirrorExperiment
 {
     /// How the field inside the mirror is shown. Chosen per condition, so one run
-    /// can interleave both, each with its own staircase.
+    /// can interleave them, each with its own staircase.
     public enum InsideView
     {
         /// A real mirror: a camera for each eye, at that eye reflected in the glass,
@@ -17,6 +17,15 @@ namespace MirrorExperiment
         ///
         /// Both views are mirror-reversed, as a car's mirror and its parking
         /// display both are.
-        Screen
+        Screen,
+
+        /// A flat picture from one camera looking forward, through the screen -
+        /// a window. Aimed at the screen's centre, and with the field of view the
+        /// screen subtends, so from the eye's calibrated place every point of the
+        /// screen shows the very star that lies behind it: the same field as seen
+        /// directly, only flat - no stereo depth, and no parallax as the head
+        /// moves. Not reversed, since nothing is reflected. Moved and tilted by
+        /// the same RearView.ScreenCamera* settings as the Screen view.
+        Forward
     }
 }

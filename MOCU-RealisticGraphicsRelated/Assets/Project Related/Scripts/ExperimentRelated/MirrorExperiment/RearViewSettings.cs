@@ -9,9 +9,11 @@ namespace MirrorExperiment
     /// receding. Always mirror-reversed, as both of those are in a car, so that
     /// stars drift across it the same way as they do outside it.
     ///
-    /// Two ways of filling the screen, chosen per condition (InsideView): a parking
-    /// display, one picture for both eyes, or a real mirror, a picture for each.
-    /// The settings below say which of the two they apply to.
+    /// Three ways of filling the screen, chosen per condition (InsideView): a parking
+    /// display, one picture for both eyes; a real mirror, a picture for each; or
+    /// Forward, the parking display's camera turned round to look ahead through the
+    /// screen, not reversed - a window. The settings below say which they apply to;
+    /// those of the Screen view apply to Forward as well.
     ///
     /// Plain floats for the same reason as StarFieldSettings.
     ///
@@ -120,7 +122,7 @@ namespace MirrorExperiment
         public float MirrorViewStarFraction { get; set; } = 1f;
         public float MirrorViewStarScale { get; set; } = 1f;
 
-        // ---- the Screen view -----------------------------------------------------------------
+        // ---- the Screen view, and Forward ----------------------------------------------------
 
         /// 1 makes the screen a window of true angular size: the camera's field of
         /// view is whatever the screen subtends at the eye, so a heading of 4
@@ -142,7 +144,8 @@ namespace MirrorExperiment
         public float ScreenCameraOffsetBack { get; set; } = 0f;
 
         /// How far the Screen view's camera is tilted down, in degrees, as parking
-        /// cameras are. 0 is level.
+        /// cameras are. 0 is level. Forward uses the same camera, at the same
+        /// place and tilt, aimed at the screen's centre instead of straight back.
         public float ScreenCameraPitch { get; set; } = 0f;
     }
 }

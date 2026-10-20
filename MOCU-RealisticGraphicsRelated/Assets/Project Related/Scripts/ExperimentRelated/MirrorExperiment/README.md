@@ -13,13 +13,13 @@ structure. Nothing here touches Race — separate namespace, separate classes,
 separate data folder. `TemporalSound` is the one type genuinely shared: it lives in
 `RaceExperiment`, is aliased in, and is used read-only.
 
-Both experiments have a class called `ExperimentHandler`, distinguished only by
-namespace. Exactly one may be active at a time, since they compete for the same UI
-buttons and `InputHandler` events. **Two files decide which one runs and they must
-agree:**
+Race, Mirror and MirrorTwoInterval each have a class called `ExperimentHandler`,
+distinguished only by namespace. Exactly one may be active at a time, since they
+compete for the same UI buttons and `InputHandler` events. **Two files decide which
+one runs and they must agree:**
 
 - `Bootstrap.cs` — uncomment one `EnsureComponent<…ExperimentHandler>()` line, comment
-  the other. The names are fully qualified there because both are in scope.
+  the others. The names are fully qualified there because all are in scope.
 - `GeneralScript.cs` — its `using` at the top is what resolves the unqualified
   `ExperimentHandler` it calls `CalibrateHeadRotation()` on. If it points at the
   namespace whose handler is *not* registered, `GetComponent` returns null and head
@@ -278,13 +278,14 @@ car is rendered into it, as a car's parking display shows it: the same motion se
 from the back of the car, so there the scene recedes. No transform has to supply that;
 the screen looks back.
 
-There are two ways to fill the screen, chosen per condition (`InsideView`), so one run
-can interleave both, each with its own staircase:
+There are three ways to fill the screen, chosen per condition (`InsideView`), so one run
+can interleave them, each with its own staircase:
 
 | `InsideView` | Cameras | Each eye sees | Head movement |
 |---|---|---|---|
 | `Screen` (default) | one, at the eye's place looking straight back | the same flat picture, stars the size they are seen directly | changes nothing: a parking display |
 | `Mirror` | one per eye, at that eye reflected in the glass | its own picture: depth behind the glass | shifts the picture, as in a real mirror |
+| `Forward` | one, at the eye's place looking forward at the screen's centre, not reversed | the same flat picture: a window onto the field ahead | changes nothing - so the window is exact only from the calibrated place. Used by MirrorTwoIntervalExperiment as "Center" |
 
 Cameras, textures and screen are all built in code from the config
 (`RearView.cs`). Nothing is added to the scene. Only the active view's cameras

@@ -1,4 +1,4 @@
-﻿using MirrorExperiment;
+﻿using MirrorTwoIntervalExperiment;
 using MoogModule;
 using System.Collections;
 using UnityEngine;

@@ -1064,7 +1064,7 @@ namespace MirrorExperiment
             if (_currentTrial == null)
                 return "on";
 
-            return _currentTrial.Condition.InsideView == InsideView.Mirror ? "on, mirror view" : "on, screen view";
+            return $"on, {_currentTrial.Condition.InsideView.ToString().ToLowerInvariant()} view";
         }
 
         /// Where the eye is relative to its place in the car, in centimeters. It

@@ -76,10 +76,11 @@ public class Bootstrap : MonoBehaviour
             // SIDE EXPERIMENTS
             // Only one experiment handler at a time: they share the same UI buttons
             // and the same InputHandler events, so two live handlers would both react.
-            // Both classes are called ExperimentHandler, hence the full names.
+            // All of them are called ExperimentHandler, hence the full names.
             // GeneralScript also resolves one of them - keep its `using` in step.
             //EnsureComponent<RaceExperiment.ExperimentHandler>(),
-            EnsureComponent<MirrorExperiment.ExperimentHandler>(),
+            //EnsureComponent<MirrorExperiment.ExperimentHandler>(),
+            EnsureComponent<MirrorTwoIntervalExperiment.ExperimentHandler>(),
             EnsureComponent<TemporalSound>(_gameObject_audio),
             //EnsureComponent<MeshisHandler>(),
             //EnsureComponent<TemporalResponseHandler>(),
