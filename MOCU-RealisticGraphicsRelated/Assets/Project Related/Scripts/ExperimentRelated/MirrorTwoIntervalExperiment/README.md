@@ -61,6 +61,30 @@ says what the two are made of; each design is a run of its own.
 `Custom` takes any two `CueSet`s. Its defaults are ves + per against ves + per + cen:
 the third experiment with the screen looking forward instead.
 
+### One shortcut per experiment
+
+The exe takes one optional argument, `-config <path>`: the config file to read instead
+of the default one. So each experiment can have a config file and a Windows shortcut of
+its own, and nobody has to edit `Design` between runs. Put it in the shortcut's
+**Target** after the exe's path:
+
+```
+"C:\…\SIMPH MOCU.exe" -config Center.json
+"C:\…\SIMPH MOCU.exe" -config AntiCenter.json
+"C:\…\SIMPH MOCU.exe" -config PeripheralAntiCenter.json
+```
+
+- A relative path is taken from the shortcut's **Start in** folder. With Start in set
+  to the shortcut's own folder, these read files lying next to the shortcuts. An
+  absolute path works too.
+- If the file doesn't exist yet, or is empty, it is written there with the defaults.
+  Then set its `Design`, once.
+- `-config` with no file after it stops Start with a message, rather than running on
+  the default file.
+- The info panel shows the config file actually used. Each session's `config.json`
+  records the settings, the design included.
+- In the Unity Editor there is no argument, so the default file is read.
+
 ## Counterbalancing
 
 Every block of 8 trials holds each combination exactly once, shuffled:
