@@ -892,8 +892,10 @@ namespace MirrorTwoIntervalExperiment
             int trialIndex = _experiment?.GetCurrentTrialIndex() ?? 0;
             int totalTrials = _experiment?.GetTotalTrialsCount() ?? 0;
 
+            // Blocks of 8, as Experiment.GenerateTrials makes them.
             string info =
                 $"trial: {trialIndex + 1} / {totalTrials}\n" +
+                $"block: {(totalTrials > 0 ? $"{trialIndex / 8 + 1} / {totalTrials / 8} (trial {trialIndex % 8 + 1} of 8)" : "-")}\n" +
                 $"design: {_parameters.Design} ({DesignCues.Vestibular(_parameters)?.Label} vs {DesignCues.Combined(_parameters)?.Label})\n" +
                 $"first: {DescribeInterval(_currentTrial?.FirstInterval)}\n" +
                 $"second: {DescribeInterval(_currentTrial?.SecondInterval)}\n" +
