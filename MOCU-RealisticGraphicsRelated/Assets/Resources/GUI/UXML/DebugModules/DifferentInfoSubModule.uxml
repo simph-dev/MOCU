@@ -30,8 +30,8 @@
     </VisualElement>
 
     <VisualElement name="debug-different-info-submodule-buttons">
-        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-1"><TextElement text="Engage Moog"/></VisualElement>
-        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-2"><TextElement text="Start Experiment"/></VisualElement>
+        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-1"><TextElement text="test1"/></VisualElement>
+        <VisualElement class="debug-different-info-submodule-button" name="debug-test-btn-2"><TextElement text="test2"/></VisualElement>
     </VisualElement>
 </VisualElement>
 

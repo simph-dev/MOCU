@@ -51,6 +51,9 @@ namespace MirrorTwoIntervalExperiment
             if (config.TestDistanceMultiplierRatio <= 0f || config.TestDistanceMultiplierRatio >= 1f)
                 return "TestDistanceMultiplierRatio must be between 0 and 1";
 
+            if (config.AnswerWindowBeforeEnd < TimeSpan.Zero || config.AnswerWindowBeforeEnd > config.IntervalDuration)
+                return "AnswerWindowBeforeEnd must be between 0 and IntervalDuration";
+
             foreach (var (name, cues) in new[] { ("Vestibular", DesignCues.Vestibular(config)), ("Combined", DesignCues.Combined(config)) })
             {
                 if (cues == null || cues.IsEmpty)

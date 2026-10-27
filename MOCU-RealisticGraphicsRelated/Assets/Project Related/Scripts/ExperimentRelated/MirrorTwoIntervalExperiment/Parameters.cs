@@ -5,6 +5,7 @@ using MoogModule;
 using FixationPointSettings = MirrorExperiment.FixationPointSettings;
 using InsideView = MirrorExperiment.InsideView;
 using RearViewSettings = MirrorExperiment.RearViewSettings;
+using SnapshotSettings = SnapshotModule.SnapshotSettings;
 using StarFieldSettings = MirrorExperiment.StarFieldSettings;
 
 
@@ -71,9 +72,25 @@ namespace MirrorTwoIntervalExperiment
         // ---- screen and fixation --------------------------------------------------------------
 
         /// The screen in front of the participant. See MirrorExperiment.RearViewSettings.
-        public RearViewSettings RearView                    { get; set; } = new RearViewSettings();
+        /// The taller mirror, 2 : 1, 0.70 m wide at 0.66 m: its glass reaches 27
+        /// degrees either side, and the whole image 15 up and down. The hole in the
+        /// torus follows its corners, to about 0.94 m.
+        public RearViewSettings RearView                    { get; set; } = new RearViewSettings
+        {
+            ScreenImage = "ScreenRearMirrorTall",
+            ScreenWidth = 0.7f
+        };
 
         public FixationPointSettings FixationPoint          { get; set; } = new FixationPointSettings();
+
+        /// Which eye the operator's "Unity view" panel shows when the app starts.
+        /// test1 on the Debug tab switches it while the app runs.
+        public EyeMirror.Eye OperatorViewEye                { get; set; } = EyeMirror.Eye.Left;
+
+        /// Pictures of the middle of every interval with stars in it, for figures:
+        /// the first of each kind in a run, from between the eyes and from each eye,
+        /// the head held straight ahead. Off by default. See SnapshotModule.
+        public SnapshotSettings Snapshots                   { get; set; } = new SnapshotSettings();
 
         // ---- positions ------------------------------------------------------------------------
 
@@ -109,7 +126,19 @@ namespace MirrorTwoIntervalExperiment
         /// The empty screen with its fixation point, between the two intervals. At
         /// least as long as the platform still needs to finish the first one.
         public TimeSpan PauseBetweenIntervals               { get; set; } = TimeSpan.FromSeconds(1);
+
+        /// Answers are taken from this long before the second interval ends, so
+        /// the participant need not wait out a movement already told apart. The
+        /// movement still runs to its end. 0 = only once it has. At most
+        /// IntervalDuration.
+        public TimeSpan AnswerWindowBeforeEnd               { get; set; } = TimeSpan.FromSeconds(0.5);
+
+        /// From the end of the second interval, however early the answer came.
         public TimeSpan TimeToAnswer                        { get; set; } = TimeSpan.FromSeconds(2);
+
+        /// The platform waits at least this long after the second interval ends,
+        /// and at least DelayAfterAnswerSignal after the answer, before it goes back.
+        public TimeSpan PauseBeforeReturn                   { get; set; } = TimeSpan.FromSeconds(0.5);
         public TimeSpan DelayAfterAnswerSignal              { get; set; } = TimeSpan.Zero;
 
         // ---- sounds ---------------------------------------------------------------------------

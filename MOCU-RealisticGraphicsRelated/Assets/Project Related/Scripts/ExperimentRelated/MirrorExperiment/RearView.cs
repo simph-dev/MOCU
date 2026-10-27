@@ -192,9 +192,9 @@ namespace MirrorExperiment
             _head = headsetCamera.transform;
 
             // The width is the config's, the height the image's, so that it is
-            // never stretched.
+            // never stretched - unless the config gives a height as well.
             _width = Mathf.Max(0.001f, settings.ScreenWidth);
-            _height = _width * HeightPerWidth(image);
+            _height = settings.ScreenHeight > 0f ? settings.ScreenHeight : _width * HeightPerWidth(image);
 
             // Turned once, here, to face the eye's place - so that a screen moved
             // off to the side still faces the driver, like a real rear-view mirror,

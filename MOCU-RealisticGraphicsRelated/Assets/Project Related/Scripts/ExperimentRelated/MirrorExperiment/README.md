@@ -491,14 +491,18 @@ green above its red and blue taken out, so a genuinely green part of a housing c
 out grey. Paint the glass a flat green with hard edges; the outline of the
 transparent part can be as soft as you like, since it is cut at half.
 
-The image is the screen. Its width is `RearView.ScreenWidth`, its height follows from
-its proportions so it is never stretched, and it hangs where `Distance`, `OffsetRight`
-and `OffsetUp` put it — those are all that change from one image to another. There is
-always an image; for a plain rectangle, use `ScreenPlainGlass`.
+The image is the screen. Its width is `RearView.ScreenWidth`, and it hangs where
+`Distance`, `OffsetRight` and `OffsetUp` put it — those are all that change from one
+image to another. Its height follows from its proportions, so it is never stretched,
+unless `RearView.ScreenHeight` gives one. Then the image, frame and all, is stretched
+to fit, but the view behind stays true, since the cameras take their field of view
+from the screen's actual size. There is always an image; for a plain rectangle, use
+`ScreenPlainGlass`.
 
 | `ScreenImage` | What it is | Proportions | Glass, of the width | `ScreenWidth` for ±16.9° |
 |---|---|---|---|---|
 | `ScreenRearMirror` | **the default:** an interior rear-view mirror, long and rounded | 3 : 1 | 95% | 0.42 (the default) |
+| `ScreenRearMirrorTall` | the same mirror, taller: same frame and rim, at 2 : 1 | 2 : 1 | 95% | 0.42 |
 | `ScreenParkingDisplay` | a parking display: a tablet with a black bezel | 16 : 10 | 92% | 0.44 |
 | `ScreenSideMirror` | a door mirror, lopsided | 1000 × 640 | 85% | 0.47 |
 | `ScreenPlainFrame` | the old screen: 40 × 20 cm of glass in a 1.5 cm frame | 860 × 460 | 93% | 0.43 |
