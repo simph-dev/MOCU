@@ -10,15 +10,22 @@ namespace MirrorExperiment
     /// through it. Nothing is added to it or taken from it on the way, so no star
     /// appears or vanishes as the car moves; only the noise moves stars about.
     ///
-    /// The hole in the middle is not set here. It is worked out from the screen and
-    /// the trial's travel (ExperimentHandler.StarHoleRadius), so that no star ever
-    /// comes between the eye and the screen, wherever the trial takes the car.
+    /// The hole in the middle is HoleRadius, unless the screen and the trial's
+    /// travel need more (ExperimentHandler.StarHoleRadius): no star may ever come
+    /// between the eye and the screen, wherever the trial takes the car.
     ///
     /// Plain floats rather than Vector3, because Unity's vector types serialise
     /// badly through Newtonsoft - they carry computed properties like normalized
     /// and magnitude that have no business in a config file.
     public class StarFieldSettings
     {
+        /// The radius of the hole, in meters: no star nearer the eye's place than
+        /// this. The same in every experiment, so their star fields match. Should a
+        /// screen and a travel need more - its furthest corner, plus the longest
+        /// a trial carries the car, plus a star - the hole is made as large as they
+        /// need, and Start says so among the warnings.
+        public float HoleRadius { get; set; } = 1.0f;
+
         /// How thick the ring is, in meters: the side of its square cross-section.
         /// The stars reach this much further out than the hole, and from half of
         /// it below eye height to half of it above, at every distance alike.

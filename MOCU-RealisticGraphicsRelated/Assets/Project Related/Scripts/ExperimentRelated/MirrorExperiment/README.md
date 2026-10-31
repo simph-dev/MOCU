@@ -15,15 +15,23 @@ separate data folder. `TemporalSound` is the one type genuinely shared: it lives
 
 Race, Mirror and MirrorTwoInterval each have a class called `ExperimentHandler`,
 distinguished only by namespace. Exactly one may be active at a time, since they
-compete for the same UI buttons and `InputHandler` events. **Two files decide which
-one runs and they must agree:**
+compete for the same UI buttons and `InputHandler` events.
 
-- `Bootstrap.cs` — uncomment one `EnsureComponent<…ExperimentHandler>()` line, comment
-  the others. The names are fully qualified there because all are in scope.
-- `GeneralScript.cs` — its `using` at the top is what resolves the unqualified
-  `ExperimentHandler` it calls `CalibrateHeadRotation()` on. If it points at the
-  namespace whose handler is *not* registered, `GetComponent` returns null and head
-  calibration throws on startup.
+**Which one runs is the config's to say.** One exe runs either car experiment, this
+one (`Heading`) or `MirrorTwoIntervalExperiment` (`TwoInterval`). At startup,
+`Bootstrap` asks `ExperimentChoice` (`Scripts/ExperimentRelated`), which reads the
+config the exe is given with `-config`:
+
+- its `"Experiment"` field. Every config the app writes has one.
+- in a file written before that field existed, its shape: `"Conditions"` is this
+  experiment's, `"Design"` the two-interval one's.
+- with no `-config`, as in the Unity Editor, the default: `TwoInterval`
+  (`ExperimentChoice.Default`).
+
+Changing experiment means starting the exe again. Each experiment also refuses a config
+written for the other, rather than reading it with its own defaults in the gaps.
+`GeneralScript` calibrates the head through `IHeadCalibration`, whichever experiment
+runs. Race is not among the choices; it would go back to a line in `Bootstrap`.
 
 ---
 
@@ -302,25 +310,29 @@ stars — the fastest — toward eye level; square, every distance gets the same
 stars. It has two settings: `StarField.TorusWidth`, the side of the square (1 m by
 default), and `StarField.DensityPerCubicMeter` (1250, the paper's).
 
-The hole in the middle is not a setting. It is worked out on every Start, so that no star
-ever comes between the eye and the screen:
+The hole in the middle is `StarField.HoleRadius`, 1 m, the same in both experiments so
+that their star fields match. It must also be at least what keeps every star beyond
+the screen, worked out on every Start:
 
 ```
-hole radius  =  distance to the screen's furthest corner, frame and all
-             +  how far a trial carries the car (Distance × VisualDistanceMultiplier)
-             +  one star
+needed  =  distance to the screen's furthest corner, frame and all
+        +  how far a trial carries the car (Distance × VisualDistanceMultiplier)
+        +  one star
 ```
+
+If more is needed than `HoleRadius`, the hole is made that large and Start says so
+among the warnings. The run still goes ahead.
 
 The torus is made where the car starts each trial, and the car can go that far in any
 direction; so wherever it is on its way, every star is still beyond the screen's
 corners, whatever the head does inside the car. The screen faces the eye, so its
-corners are further than its centre: 0.70 m for the default mirror, 42 × 14 cm at 0.66 m, and
-0.84 m with the 13 cm of travel and a 1 cm star.
+corners are further than its centre: 0.77 m for the 70 × 35 cm mirror at 0.66 m, and
+0.91 m needed with the 13 cm of travel and a 1 cm star, within the 1 m.
 
 ```
-default torus    hole 0.84 m, width 1 m: stars 0.84 to 1.84 m from the axis,
+default torus    hole 1 m, width 1 m: stars 1 to 2 m from the axis,
                  from 0.5 m below eye height to 0.5 m above
-                 π × (1.84² − 0.84²) × 1 ≈ 8.4 m^3 at 1250 per m^3 ≈ 10500 stars
+                 π × (2² − 1²) × 1 ≈ 9.4 m^3 at 1250 per m^3 ≈ 11800 stars
 ```
 
 - Made at the start of every trial and left where it is while the car goes through it.
@@ -563,7 +575,7 @@ converges at about 73% correct, which samples the informative part of the curve.
 
 ## Running a session
 
-These are the same as in `MirrorTwoIntervalExperiment` (on its own branch), adapted to
+These are the same as in `MirrorTwoIntervalExperiment`, adapted to
 one stimulus per trial.
 
 ### The screen
@@ -703,7 +715,7 @@ What is still needed:
    one texture for both eyes and has no second one to tell the glass from the frame,
    so the screen needs its own small shader.
 4. Camera near clip **0.05** (the paper clips at 5 cm).
-5. In `Bootstrap.cs`, exactly one experiment handler active.
+5. A config that says this experiment, given with `-config` (see the top of this file).
 
 While the app runs, the `Stars` object's Inspector still has the debug toggles —
 `AlwaysVisible`, `PreviewCoherence`. They reset with every Play, so a preview cannot
@@ -737,6 +749,12 @@ Documents/MocuME/
 ```
 
 Mirrored into a hidden `%UserProfile%/MocuME_Vault/` as an independent backup.
+
+That is the default. The config's `DataFolder` puts the sessions elsewhere. A relative
+path is taken from the config file's own folder, so `"Data"` keeps the results, and
+the `Snapshots` inside it, next to the config and the `.bat` that runs it. Start makes
+the folder, or refuses with the reason, before the first trial. The info panel's
+`data:` line shows where it is.
 
 The config is re-read on **every** press of Start, so editing it does not require
 restarting Unity. A malformed file refuses to start the experiment rather than

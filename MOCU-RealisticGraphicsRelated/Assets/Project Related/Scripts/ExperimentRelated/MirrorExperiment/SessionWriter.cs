@@ -10,8 +10,9 @@ using UnityEngine;
 
 namespace MirrorExperiment
 {
-    /// One folder per session, containing the settings that were used and one line
-    /// of JSON per trial:
+    /// One folder per session, in the data folder (Parameters.DataFolder; by
+    /// default Documents/MocuME), containing the settings that were used and one
+    /// line of JSON per trial:
     ///
     ///     Documents/MocuME/2026-08-18_14-32-05/config.json
     ///     Documents/MocuME/2026-08-18_14-32-05/trials.jsonl
@@ -38,17 +39,14 @@ namespace MirrorExperiment
         public string MainFolder => _sessionFolders.Count > 0 ? _sessionFolders[0] : null;
 
 
-        public SessionWriter(DateTimeOffset startedAt, Parameters parameters)
+        public SessionWriter(DateTimeOffset startedAt, Parameters parameters, string dataFolder)
         {
             string sessionName = startedAt.ToString("yyyy-MM-dd_HH-mm-ss");
-
-            string documentsRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MocuME");
 
             string vaultRoot = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "MocuME_Vault");
 
-            _sessionFolders.Add(CreateFolder(documentsRoot, sessionName, hideRoot: false));
+            _sessionFolders.Add(CreateFolder(dataFolder, sessionName, hideRoot: false));
             _sessionFolders.Add(CreateFolder(vaultRoot, sessionName, hideRoot: true));
 
             // The full configuration, snapshotted at the moment the session began.

@@ -1,5 +1,4 @@
-﻿using MirrorExperiment;
-using MoogModule;
+﻿using MoogModule;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.XR;
@@ -51,11 +50,10 @@ public class GeneralScript : ManagedMonoBehaviour
         XRSettings.gameViewRenderMode = GameViewRenderMode.None;    // prevents rendering VR view on monitor (works only in Build version)
         XRSettings.showDeviceView = false;
 
-        var RH = GetComponent<ExperimentHandler>();
-        StartCoroutine(DelayedCalibration(RH));
+        StartCoroutine(DelayedCalibration());
     }
 
-    private IEnumerator DelayedCalibration(ExperimentHandler rh)
+    private IEnumerator DelayedCalibration()
     {
         var vr = GetComponent<VrHandler>();
 
@@ -72,6 +70,7 @@ public class GeneralScript : ManagedMonoBehaviour
         // at whatever height the headset started at instead of bringing it to
         // CameraStartPosition. Harmless while that was 1.7 and the eye already sat
         // there; visible now that it is zero.
-        GetComponent<ExperimentHandler>().CalibrateHead();
+        // Whichever experiment Bootstrap started (ExperimentChoice).
+        GetComponent<IHeadCalibration>()?.CalibrateHead();
     }
 }

@@ -69,11 +69,13 @@
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\UnityPart\ChartsHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\Cedrus\CedrusHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\Parameters.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\Parameters.cs" />
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\Cedrus\GamepadSimulator.cs" />
     <Compile Include="Assets\Project Related\Scripts\CustomDataStructures\ObservableConcurrentQueue.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\InputLogic.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DaemonHandlers\DaemonHandler_Client.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\EncodedMachineState.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\ParametersFile.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DaemonHandlers\DaemonHandler_Base.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\UnityPart\DaemonType.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\InterprocessCommunicator\InterprocessCommunicator_Client.cs" />
@@ -104,6 +106,7 @@
     <Compile Include="Assets\Project Related\Scripts\UnityMainThreadDispatcher.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\ActionMap + Actions\enum_ActionMapName.cs" />
     <Compile Include="Assets\Project Related\Scripts\VrRelated\CopyCameraView.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\SessionWriter.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\DaemonErrorReport.cs" />
     <Compile Include="Assets\For tests\Moog Movement\JoystickForMoogTest.cs" />
     <Compile Include="Assets\Resources\GUI\CustomElements\Slider\CustomSlider.cs" />
@@ -137,6 +140,7 @@
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\MinimalDataTransferObject.cs" />
     <Compile Include="Assets\Project Related\Scripts\InputRelated\ActionMap + Actions\enum_JoystickAction.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Profile\TrajectoryProfileSettings.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\Experiment.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\InterprocessCommunicator\InterprocessCommunicator_Interface.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\JsonHelper.cs" />
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\Cedrus\KeyboardSimulator.cs" />
@@ -147,9 +151,13 @@
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\Cedrus\SerialPortHelper.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\Polarity.cs" />
     <Compile Include="Assets\Project Related\Scripts\GeneralScript.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\CueSet.cs" />
+    <Compile Include="Assets\Project Related\Scripts\VrRelated\Snapshot\HeadsetSnapshot.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\FixationPointSettings.cs" />
     <Compile Include="Assets\Project Related\Scripts\StatusesRelated\SubStatusState.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\Enums.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DaemonHandlers\IBusinessLogic_Server.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\Design.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\TrialInterval.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\CommonPart\AudioClipData.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\UnityPart\InterprocessCommunicationMessageLog.cs" />
@@ -160,6 +168,7 @@
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\ParametersFile.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\TemporalResponseHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\DataRelated\ConfigHandler.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\ExperimentChoice.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\HeadingTransform.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\IntervalRole.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\ExperimentHandler.cs" />
@@ -203,9 +212,11 @@
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\TrialAnswer.cs" />
     <Compile Include="Assets\Project Related\Scripts\AudioRelated\UnityPart\AudioHandler_API.cs" />
     <Compile Include="Assets\SampleSceneAssets\Controllers\Common\InputSystem\StarterAssetsInputs.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\ExperimentHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorExperiment\Trial.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\DofParameters.cs" />
     <Compile Include="Assets\For tests\FixedUpdateMonitor.cs" />
+    <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\MirrorTwoIntervalExperiment\Trial.cs" />
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\CommonPart\PointData.cs" />
     <Compile Include="Assets\Project Related\Scripts\ExperimentRelated\RaceExperiment\SavedData.cs" />
     <Compile Include="Assets\Project Related\Scripts\CustomDataStructures\SafeExpandoObject.cs" />
@@ -239,6 +250,7 @@
     <Compile Include="Assets\Project Related\Scripts\ChartsRelated\CommonPart\ChartData.cs" />
     <Compile Include="Assets\Project Related\Scripts\ParticipantResponseRelated\AnswerHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\ControllersRelated\IControllerDevice.cs" />
+    <Compile Include="Assets\Project Related\Scripts\VrRelated\Snapshot\SnapshotSettings.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\CommonPart\InterprocessCommunicator\InterprocessCommunicator_EventType.cs" />
     <Compile Include="Assets\Project Related\Scripts\DaemonsRelated\zDifferent (deprecated)\DaemonHandlers\IDaemonHandler.cs" />
     <Compile Include="Assets\Project Related\Scripts\MoogRelated\CommonPart\TrajectoryRelated\Type\Linear\TrajectoryTypeSettings_Linear.cs" />

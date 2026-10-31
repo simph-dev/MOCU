@@ -10,6 +10,18 @@ namespace MirrorExperiment
 {
     public class Parameters
     {
+        /// Which experiment this config is for, written into the file so that the
+        /// exe, given it with -config, starts the right one (ExperimentChoice).
+        /// Fixed: read back, it is ignored.
+        public ExperimentKind Experiment => ExperimentKind.Heading;
+
+        /// Where sessions are saved, each in a folder of its own. Empty: the
+        /// default, Documents/MocuME. A relative path is taken from the config
+        /// file's own folder, so "Data" keeps the results next to the config - and
+        /// the .bat that runs it. Snapshots go into Snapshots inside it. Every
+        /// session is also mirrored into the hidden MocuME_Vault in the user profile.
+        public string DataFolder { get; set; } = "";
+
         // ---- trial structure ------------------------------------------------------------------
 
         public int TrialsPerCondition                       { get; set; } = 80;     // 7 conditions -> 560 trials

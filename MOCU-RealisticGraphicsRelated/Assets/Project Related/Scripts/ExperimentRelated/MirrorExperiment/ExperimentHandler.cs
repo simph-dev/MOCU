@@ -24,7 +24,7 @@ namespace MirrorExperiment
     /// Built on the same infrastructure as RaceExperiment, but the trial structure
     /// is one interval with a left/right response instead of two intervals with a
     /// which-was-larger response.
-    public class ExperimentHandler : ManagedMonoBehaviour
+    public class ExperimentHandler : ManagedMonoBehaviour, IHeadCalibration
     {
         private Parameters _parameters;
         private Experiment _experiment;
@@ -547,6 +547,27 @@ namespace MirrorExperiment
 
         /// Refuses a run whose conditions need stars there are none of - the log
         /// says why. Otherwise those trials would run as blank screens.
+        /// The data folder is made, or found unusable, before the run begins - not
+        /// after its first trial, with the participant in the chair.
+        private string CheckDataFolder()
+        {
+            try
+            {
+                Directory.CreateDirectory(ParametersFile.DataFolderFor(_parameters));
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"DataFolder \"{_parameters.DataFolder}\" cannot be used: {e.Message}";
+            }
+        }
+
+        private string DescribeDataFolder()
+        {
+            try { return ParametersFile.DataFolderFor(_parameters); }
+            catch (Exception) { return $"\"{_parameters.DataFolder}\" - not a usable path"; }
+        }
+
         private string FindMissingStars()
         {
             if (_starField != null || !_parameters.Conditions.Exists(c => c.Enabled && c.HasAnyVisual))
@@ -651,6 +672,7 @@ namespace MirrorExperiment
 
             string problem = Experiment.FindConditionProblem(_parameters)
                              ?? FindMissingStars()
+                             ?? CheckDataFolder()
                              ?? ConfigureRearView()
                              ?? ConfigureFixationPoint(running: true);
 
@@ -688,6 +710,8 @@ namespace MirrorExperiment
                 _starField.Hide();
                 _starField.Configure(_parameters.StarField, StarHoleRadius());
             }
+
+            WarnIfStarHoleGrew();
 
             // Angles and position both: the participant has been told to look
             // straight ahead and keep still. At startup only the angles matter -
@@ -1037,7 +1061,7 @@ namespace MirrorExperiment
             _snapshot.Take(
                 _parameters.Snapshots,
                 _headsetCamera,
-                Path.Combine(ParametersFile.DefaultFolderPath, "Snapshots"),
+                Path.Combine(ParametersFile.DataFolderFor(_parameters), "Snapshots"),
                 $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{label}",
                 (float)_parameters.StimulusDuration.TotalSeconds / 2f,
                 path => _experimentTabHandler.PrintToWarnings($"Snapshot saved: {Path.GetFileName(path)}\n"));
@@ -1125,7 +1149,7 @@ namespace MirrorExperiment
 
             // Written here rather than at the end of the run: a session that is
             // aborted halfway still leaves everything up to that point on disk.
-            _sessionWriter ??= new SessionWriter(_experiment.StartedAt, _parameters);
+            _sessionWriter ??= new SessionWriter(_experiment.StartedAt, _parameters, ParametersFile.DataFolderFor(_parameters));
             _sessionWriter.AppendTrial(_currentTrial);
 
             yield return null;
@@ -1152,7 +1176,24 @@ namespace MirrorExperiment
         /// The corners are the built screen's, whose image says how high it is.
         /// With no screen built, the plain rectangle the settings describe stands
         /// in: the screen is where the car's inside ends either way.
-        private float StarHoleRadius()
+        ///
+        /// StarField.HoleRadius, the same in every experiment, unless this needs
+        /// more (NeededStarHoleRadius); Start warns when it does.
+        private float StarHoleRadius() => Mathf.Max(_parameters.StarField.HoleRadius, NeededStarHoleRadius());
+
+        /// Not an error: the run goes ahead, only with its stars further off than
+        /// the other experiments'.
+        private void WarnIfStarHoleGrew()
+        {
+            float needed = NeededStarHoleRadius();
+
+            if (needed > _parameters.StarField.HoleRadius)
+                _experimentTabHandler.PrintToWarnings(
+                    $"Stars start at {needed:F2} m, beyond StarField.HoleRadius {_parameters.StarField.HoleRadius:F2} m: " +
+                    "the screen and the longest movement need that much\n");
+        }
+
+        private float NeededStarHoleRadius()
         {
             float travel = _parameters.Distance * Mathf.Abs(_parameters.VisualDistanceMultiplier);
             float star = Mathf.Max(_parameters.StarField.StarWidth, _parameters.StarField.StarHeight);
@@ -1292,6 +1333,7 @@ namespace MirrorExperiment
                 $"calibration: {DescribeCalibration()}\n" +
                 $"operator view: {(_eyeMirror != null ? _eyeMirror.eye.ToString().ToLowerInvariant() + " eye" : "-")}\n" +
                 $"config: {ParametersFile.FilePath}\n" +
+                $"data: {DescribeDataFolder()}\n" +
                 $"star noise: {_parameters.NoiseUpdateHz:F0} Hz asked / {(_starField != null ? _starField.MeasuredNoiseHz.ToString("F1") : "-")} Hz measured";
 
             _experimentTabHandler?.PrintToInfo(info, true);

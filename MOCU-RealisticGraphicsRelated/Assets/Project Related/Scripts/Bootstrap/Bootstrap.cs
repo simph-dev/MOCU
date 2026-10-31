@@ -74,12 +74,10 @@ public class Bootstrap : MonoBehaviour
             //EnsureComponent<FixedUpdateMonitor>(),
 
             // SIDE EXPERIMENTS
-            // Only one experiment handler at a time: they share the same UI buttons
-            // and the same InputHandler events, so two live handlers would both react.
-            // Both classes are called ExperimentHandler, hence the full names.
-            // GeneralScript also resolves one of them - keep its `using` in step.
+            // The car's experiments: the one the config says (ExperimentChoice).
+            // RaceExperiment is not among them.
             //EnsureComponent<RaceExperiment.ExperimentHandler>(),
-            EnsureComponent<MirrorExperiment.ExperimentHandler>(),
+            EnsureExperimentHandler(),
             EnsureComponent<TemporalSound>(_gameObject_audio),
             //EnsureComponent<MeshisHandler>(),
             //EnsureComponent<TemporalResponseHandler>(),
@@ -116,6 +114,21 @@ public class Bootstrap : MonoBehaviour
     }
 
 
+
+    /// Exactly one experiment handler: they share the same UI buttons and the same
+    /// InputHandler events, so two live handlers would both react. All of them are
+    /// called ExperimentHandler, hence the full names.
+    private ManagedMonoBehaviour EnsureExperimentHandler()
+    {
+        ExperimentKind kind = ExperimentChoice.Read();
+        Debug.Log($"Experiment: {kind}");
+
+        return kind switch
+        {
+            ExperimentKind.Heading => EnsureComponent<MirrorExperiment.ExperimentHandler>(),
+            _ => EnsureComponent<MirrorTwoIntervalExperiment.ExperimentHandler>()
+        };
+    }
 
     private T EnsureComponent<T>(GameObject GO = null) where T : ManagedMonoBehaviour
     {

@@ -73,13 +73,27 @@ namespace MirrorExperiment
                 return defaults;
             }
 
-            var loaded = JsonHelper.DeserializeJson<Parameters>(File.ReadAllText(FilePath), ReadSettings);
+            string json = File.ReadAllText(FilePath);
+            ExperimentChoice.Expect(ExperimentKind.Heading, json, FilePath);
+
+            var loaded = JsonHelper.DeserializeJson<Parameters>(json, ReadSettings);
 
             int enabled = loaded.Conditions?.FindAll(c => c.Enabled).Count ?? 0;
             Debug.Log($"MirrorExperiment: loaded config from {FilePath} " +
                       $"({loaded.Conditions?.Count ?? 0} conditions, {enabled} enabled)");
 
             return loaded;
+        }
+
+        /// Where sessions are saved: Parameters.DataFolder, a relative one taken from
+        /// the config file's own folder, or with none the default folder. Throws on
+        /// a path that cannot be a path.
+        public static string DataFolderFor(Parameters parameters)
+        {
+            if (string.IsNullOrWhiteSpace(parameters.DataFolder))
+                return DefaultFolderPath;
+
+            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(FilePath), parameters.DataFolder));
         }
 
         /// The value after a command-line argument: null if the argument is not
