@@ -9,9 +9,11 @@ namespace MirrorExperiment
     /// receding. Always mirror-reversed, as both of those are in a car, so that
     /// stars drift across it the same way as they do outside it.
     ///
-    /// Two ways of filling the screen, chosen per condition (InsideView): a parking
-    /// display, one picture for both eyes, or a real mirror, a picture for each.
-    /// The settings below say which of the two they apply to.
+    /// Three ways of filling the screen, chosen per condition (InsideView): a parking
+    /// display, one picture for both eyes; a real mirror, a picture for each; or
+    /// Forward, the parking display's camera turned round to look ahead through the
+    /// screen, not reversed - a window. The settings below say which they apply to;
+    /// those of the Screen view apply to Forward as well.
     ///
     /// Plain floats for the same reason as StarFieldSettings.
     ///
@@ -47,12 +49,18 @@ namespace MirrorExperiment
         /// tell the participant which condition this is.
         public string ScreenImage { get; set; } = "ScreenRearMirror";
 
-        /// Width of the screen in meters - of the whole image, frame and all. Its
-        /// height follows from the image's own proportions, so the image is never
-        /// stretched. 0.42 puts the default mirror's glass out to 16.9 degrees
-        /// either side, at 0.66 m: what the glass shows is what decides how wide a
-        /// heading can still be seen on it (see README.md).
+        /// Width of the screen in meters - of the whole image, frame and all. 0.42
+        /// puts the default mirror's glass out to 16.9 degrees either side, at
+        /// 0.66 m: what the glass shows is what decides how wide a heading can
+        /// still be seen on it (see README.md).
         public float ScreenWidth { get; set; } = 0.42f;
+
+        /// Height of the screen in meters, frame and all. 0, the default: whatever
+        /// the image's own proportions give for ScreenWidth, so the image is never
+        /// stretched. Above 0 the image is stretched to this height - its frame
+        /// along with it - while the view behind stays true: the cameras take
+        /// their field of view from the screen's actual size, not the image's.
+        public float ScreenHeight { get; set; } = 0f;
 
         /// Where the centre of the screen sits relative to the eye's calibrated
         /// place, in meters. The screen is fixed there, like a mirror in a car: it
@@ -72,16 +80,18 @@ namespace MirrorExperiment
 
         /// How far the furthest corner of the screen can be from the eye's place,
         /// for when there is no screen built to ask (RearView.FurthestCornerDistance
-        /// knows the image's height and gives the exact figure). Without it, the
-        /// screen is taken to be as high as it is wide - more than any of the
-        /// images, so the hole in the stars errs on the large side. The screen
-        /// faces that place square on, so it is the distance to the centre and half
-        /// the diagonal put together (ExperimentHandler.StarHoleRadius).
+        /// knows the image's height and gives the exact figure). Without it, and
+        /// with no ScreenHeight given, the screen is taken to be as high as it is
+        /// wide - more than any of the images, so the hole in the stars errs on the
+        /// large side. The screen faces that place square on, so it is the distance
+        /// to the centre and half the diagonal put together
+        /// (ExperimentHandler.StarHoleRadius).
         public float FurthestCornerDistance()
         {
-            float half = ScreenWidth / 2f;
+            float halfWidth = ScreenWidth / 2f;
+            float halfHeight = (ScreenHeight > 0f ? ScreenHeight : ScreenWidth) / 2f;
 
-            return Mathf.Sqrt(ScreenCenter().sqrMagnitude + 2f * half * half);
+            return Mathf.Sqrt(ScreenCenter().sqrMagnitude + halfWidth * halfWidth + halfHeight * halfHeight);
         }
 
         /// Resolution of the textures behind the screen, per degree of visual angle
@@ -120,7 +130,7 @@ namespace MirrorExperiment
         public float MirrorViewStarFraction { get; set; } = 1f;
         public float MirrorViewStarScale { get; set; } = 1f;
 
-        // ---- the Screen view -----------------------------------------------------------------
+        // ---- the Screen view, and Forward ----------------------------------------------------
 
         /// 1 makes the screen a window of true angular size: the camera's field of
         /// view is whatever the screen subtends at the eye, so a heading of 4
@@ -142,7 +152,8 @@ namespace MirrorExperiment
         public float ScreenCameraOffsetBack { get; set; } = 0f;
 
         /// How far the Screen view's camera is tilted down, in degrees, as parking
-        /// cameras are. 0 is level.
+        /// cameras are. 0 is level. Forward uses the same camera, at the same
+        /// place and tilt, aimed at the screen's centre instead of straight back.
         public float ScreenCameraPitch { get; set; } = 0f;
     }
 }

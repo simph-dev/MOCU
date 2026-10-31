@@ -46,6 +46,9 @@ namespace MirrorExperiment
             if (config.Conditions == null || config.Conditions.Count == 0)
                 return "Parameters.Conditions is empty - nothing to run";
 
+            if (config.AnswerWindowBeforeEnd < TimeSpan.Zero || config.AnswerWindowBeforeEnd > config.StimulusDuration)
+                return "AnswerWindowBeforeEnd must be between 0 and StimulusDuration";
+
             for (int i = 0; i < config.Conditions.Count; i++)
             {
                 var condition = config.Conditions[i];

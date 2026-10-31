@@ -81,7 +81,9 @@ namespace MirrorExperiment
         public TrialAnswer ReceivedAnswer { get; set; } = TrialAnswer.None;
         public bool AnswerIsCorrect => ReceivedAnswer == CorrectAnswer;
 
-        public float ResponseTime { get; set; } = 0f;
+        /// Seconds from the end of the stimulus to the answer: negative for one
+        /// given during its last AnswerWindowBeforeEnd. Null on a timeout.
+        public float? ResponseTime { get; set; }
 
         /// How long the stimulus phase actually took, in seconds. Measured rather
         /// than assumed, so "was it really one second?" is answerable from the data.

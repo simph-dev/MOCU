@@ -13,13 +13,13 @@ structure. Nothing here touches Race — separate namespace, separate classes,
 separate data folder. `TemporalSound` is the one type genuinely shared: it lives in
 `RaceExperiment`, is aliased in, and is used read-only.
 
-Both experiments have a class called `ExperimentHandler`, distinguished only by
-namespace. Exactly one may be active at a time, since they compete for the same UI
-buttons and `InputHandler` events. **Two files decide which one runs and they must
-agree:**
+Race, Mirror and MirrorTwoInterval each have a class called `ExperimentHandler`,
+distinguished only by namespace. Exactly one may be active at a time, since they
+compete for the same UI buttons and `InputHandler` events. **Two files decide which
+one runs and they must agree:**
 
 - `Bootstrap.cs` — uncomment one `EnsureComponent<…ExperimentHandler>()` line, comment
-  the other. The names are fully qualified there because both are in scope.
+  the others. The names are fully qualified there because all are in scope.
 - `GeneralScript.cs` — its `using` at the top is what resolves the unqualified
   `ExperimentHandler` it calls `CalibrateHeadRotation()` on. If it points at the
   namespace whose handler is *not* registered, `GetComponent` returns null and head
@@ -278,13 +278,14 @@ car is rendered into it, as a car's parking display shows it: the same motion se
 from the back of the car, so there the scene recedes. No transform has to supply that;
 the screen looks back.
 
-There are two ways to fill the screen, chosen per condition (`InsideView`), so one run
-can interleave both, each with its own staircase:
+There are three ways to fill the screen, chosen per condition (`InsideView`), so one run
+can interleave them, each with its own staircase:
 
 | `InsideView` | Cameras | Each eye sees | Head movement |
 |---|---|---|---|
 | `Screen` (default) | one, at the eye's place looking straight back | the same flat picture, stars the size they are seen directly | changes nothing: a parking display |
 | `Mirror` | one per eye, at that eye reflected in the glass | its own picture: depth behind the glass | shifts the picture, as in a real mirror |
+| `Forward` | one, at the eye's place looking forward at the screen's centre, not reversed | the same flat picture: a window onto the field ahead | changes nothing - so the window is exact only from the calibrated place. Used by MirrorTwoIntervalExperiment as "Center" |
 
 Cameras, textures and screen are all built in code from the config
 (`RearView.cs`). Nothing is added to the scene. Only the active view's cameras
@@ -439,11 +440,12 @@ on the screen          the flow sinks into a point 16° to the left;
   crawl. `Magnification` sets that squeeze on purpose, like a convex mirror: at
   0.5 the lens covers about 62° across and every angle on the screen is halved —
   headings included.
-- So the screen shows headings out to the edge of its glass, ±16.9° for the default: the point
-  the flow on it sinks into sits just inside the edge at the staircase's starting 16°,
-  and just off it beyond — 19° with Δ = −6. The flow still shows which way the car
-  goes; only the point itself is off the glass. Glass 46 cm wide at 0.66 m would
-  hold ±19°.
+- So the screen shows headings out to the edge of its glass. With `RearViewSettings`'
+  own default, the 0.42 m mirror, that is ±16.9°: the point the flow on it sinks into
+  sits just inside the edge at the staircase's starting 16°, and just off it beyond —
+  19° with Δ = −6. The flow still shows which way the car goes; only the point itself
+  is off the glass. This experiment uses the taller mirror, 0.70 m wide (see *The
+  screen's image*). Its glass reaches ±26.8°, so even 19° stays well on it.
 - The Screen view's camera can be moved (`ScreenCameraOffsetRight/Up/Back`) and tilted
   down (`ScreenCameraPitch`), like a parking camera on a bumper. All zero — at the eye,
   looking straight back — is this experiment's setup, and the only one where angles
@@ -490,14 +492,18 @@ green above its red and blue taken out, so a genuinely green part of a housing c
 out grey. Paint the glass a flat green with hard edges; the outline of the
 transparent part can be as soft as you like, since it is cut at half.
 
-The image is the screen. Its width is `RearView.ScreenWidth`, its height follows from
-its proportions so it is never stretched, and it hangs where `Distance`, `OffsetRight`
-and `OffsetUp` put it — those are all that change from one image to another. There is
-always an image; for a plain rectangle, use `ScreenPlainGlass`.
+The image is the screen. Its width is `RearView.ScreenWidth`, and it hangs where
+`Distance`, `OffsetRight` and `OffsetUp` put it — those are all that change from one
+image to another. Its height follows from its proportions, so it is never stretched,
+unless `RearView.ScreenHeight` gives one. Then the image, frame and all, is stretched
+to fit, but the view behind stays true, since the cameras take their field of view
+from the screen's actual size. There is always an image; for a plain rectangle, use
+`ScreenPlainGlass`.
 
 | `ScreenImage` | What it is | Proportions | Glass, of the width | `ScreenWidth` for ±16.9° |
 |---|---|---|---|---|
 | `ScreenRearMirror` | **the default:** an interior rear-view mirror, long and rounded | 3 : 1 | 95% | 0.42 (the default) |
+| `ScreenRearMirrorTall` | the same mirror, taller: same frame and rim, at 2 : 1 | 2 : 1 | 95% | 0.42 |
 | `ScreenParkingDisplay` | a parking display: a tablet with a black bezel | 16 : 10 | 92% | 0.44 |
 | `ScreenSideMirror` | a door mirror, lopsided | 1000 × 640 | 85% | 0.47 |
 | `ScreenPlainFrame` | the old screen: 40 × 20 cm of glass in a 1.5 cm frame | 860 × 460 | 93% | 0.43 |
@@ -555,6 +561,85 @@ converges at about 73% correct, which samples the informative part of the curve.
 
 ---
 
+## Running a session
+
+These are the same as in `MirrorTwoIntervalExperiment` (on its own branch), adapted to
+one stimulus per trial.
+
+### The screen
+
+`Parameters.RearView` defaults to the taller mirror, `ScreenRearMirrorTall` (2:1, the
+same frame as the 3:1 mirror). It is 0.70 m wide at 0.66 m, so the glass reaches 26.8°
+either side and the whole image 15° up and down. Its height (0.35 m) follows from the
+image (`ScreenHeight` 0). A height of its own would stretch the image, and so make the
+frame thicker on two sides than on the other two.
+
+### Head calibration
+
+"Look straight ahead and keep still" is the zero. Calibration takes the head's whole
+rotation as straight ahead and level: **yaw**, **pitch** and **roll**. Before any
+calibration, level is the headset's own: gravity. At startup (`GeneralScript`) only the
+angles matter, since until Start everything shown follows the head. **Start**
+calibrates angles and position both. The info panel's `calibration:` line shows what
+was taken as zero.
+
+The yaw at calibration is straight ahead for the whole run, and in this task that is
+the heading's zero. A head turned a few degrees at Start shifts every visual heading
+by as much, so calibrate with the head held straight.
+
+### Before Start
+
+Until Start, and again once the run is over or stopped, only the fixation point is
+shown. It hangs straight ahead of the head and follows it wherever the body goes
+(`FixationAnchor.Head`). Start brings on the screen and moves the dot to where
+`FixationPoint.Anchor` puts it.
+
+### Answers
+
+Left and Right are taken from `AnswerWindowBeforeEnd` (0.5 s) before the stimulus
+ends, so the participant needn't wait out a movement already judged. The first press
+counts. The movement still runs to its end, and `TimeToAnswer` (2 s) still runs from
+that end. The platform goes back no sooner than `PauseBeforeReturn` (0.5 s) after the
+end. Set `AnswerWindowBeforeEnd` to 0 to take answers only after the movement, as in
+the paper.
+
+### Pause
+
+Pause takes effect at once:
+
+- **Before the start signal:** nothing has moved yet, so the pause begins straight away.
+- **During the stimulus, or before an answer has come:** the trial is dropped. It is
+  not recorded, and its staircase doesn't move. After Resume it runs again, with a
+  heading drawn afresh. The stars go at once. The platform finishes the move it is
+  making, then goes back to neutral.
+- **Once the answer is in:** the trial is recorded as usual.
+
+### The operator's view
+
+The "Unity view" panel shows one eye: `OperatorViewEye` at startup (`Left` by
+default), and **test1** on the Debug tab switches between the two. Both eyes are
+rendered in one pass, into one texture array, and the copy picks one explicitly. It
+used to let both write and show whichever came last. Either way it is one eye's
+off-centre picture, so the fixation point isn't in the middle: right of it in the left
+eye, left of it in the right.
+
+### Snapshots for figures
+
+With `Snapshots.Enabled`, the middle of the stimulus of the first trial of each
+condition in a run is saved to `Documents/MocuME/Snapshots/`. The picture comes from
+`SnapshotModule` (`Scripts/VrRelated/Snapshot`): between the eyes, straight ahead and
+level, covering exactly the headset's field. Off by default; not for real runs, as it
+can cost the headset frames.
+
+### One shortcut per setup
+
+The exe takes `-config <path>`: the config file to read instead of the default one. A
+relative path is taken from the shortcut's **Start in** folder. A file that doesn't
+exist yet, or is empty, is written there with the defaults. The info panel's `config:`
+line shows which file was read.
+
+---
+
 ## Files
 
 | File | Role |
@@ -569,11 +654,11 @@ converges at about 73% correct, which samples the informative part of the curve.
 | `ParametersFile.cs` | Reads the config JSON from the data folder |
 | `StarField.cs` | The star cloud: geometry, coherence, rendering |
 | `RearView.cs` | The rear view: its screen, cameras and textures, built in code |
-| `InsideView.cs` | Mirror or Screen: how the field inside the mirror is shown |
+| `InsideView.cs` | Mirror, Screen or Forward: how the field inside the mirror is shown |
 | `KeyboardHead.cs` | Debug: moving the head with the keyboard instead of walking |
 | `Resources/RearViewScreen.shader` | The screen, both views: its image, and on the green the view behind for each eye |
 | `RearViewSettings.cs` | Its config: the screen's image, size and place, stars in the Mirror view, magnification |
-| `Resources/Screen*.png` | Example screen images: a plain frame, an interior mirror, a parking display, a door mirror |
+| `Resources/Screen*.png` | Example screen images: a plain frame, an interior mirror and a taller one, a parking display, a door mirror |
 | `FixationPoint.cs` | The fixation dot, built in code |
 | `FixationPointSettings.cs`, `FixationAnchor.cs` | Its config: on/off, what it is fixed to, distance, size |
 | `Resources/FixationPoint.mat` | Its material: the project's fixation shader, drawn on top of everything |
@@ -593,7 +678,8 @@ MirrorExperiment
 ├── Stars             the StarField
 ├── EyeMirrorVolume   copies every headset frame to the operator's "Unity view" panel
 ├── FixationPoint
-└── RearView          only once the config switches the screen on
+├── Snapshot          pictures for figures, when the config asks for them
+└── RearView          only once the config switches the screen on; hidden until Start
 ```
 
 The scene holds none of it, so none of it can be lost from the scene or disagree
@@ -664,7 +750,10 @@ its index whether or not its neighbours ran.
 
 Trials are appended, not rewritten. Each line is self-contained: it carries the
 nested condition, all three levels of heading, the reference the answer was scored
-against, and the response. Analysis is one line:
+against, and the response. `ResponseTime` is in seconds from the end of the stimulus:
+negative for an answer given before the end, null on a timeout. Sessions from before
+29 Oct 2026 count it from the start of the answer phase and use −1 for a timeout.
+Analysis is one line:
 
 ```python
 pd.read_json('trials.jsonl', lines=True)

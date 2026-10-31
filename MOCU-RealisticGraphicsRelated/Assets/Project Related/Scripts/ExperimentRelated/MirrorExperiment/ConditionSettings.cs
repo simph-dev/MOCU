@@ -89,6 +89,8 @@ namespace MirrorExperiment
 
                 if (HasVisualInside && InsideView == InsideView.Mirror)
                     label += " (mirror)";
+                else if (HasVisualInside && InsideView == InsideView.Forward)
+                    label += " (forward)";
 
                 label += $" {Coherence * 100f:F0}%";
 

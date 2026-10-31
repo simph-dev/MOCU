@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 using MoogModule;
 
+using SnapshotSettings = SnapshotModule.SnapshotSettings;
+
 
 namespace MirrorExperiment
 {
@@ -81,8 +83,14 @@ namespace MirrorExperiment
         // ---- mirror ---------------------------------------------------------------------------
 
         /// The rear-view screen. On by default. See RearViewSettings, and README.md
-        /// for which way left and right end up.
-        public RearViewSettings RearView                    { get; set; } = new RearViewSettings();
+        /// for which way left and right end up. The taller mirror, 2 : 1, 0.70 m
+        /// wide at 0.66 m - the same as MirrorTwoIntervalExperiment's: its glass
+        /// reaches 27 degrees either side, and the whole image 15 up and down.
+        public RearViewSettings RearView                    { get; set; } = new RearViewSettings
+        {
+            ScreenImage = "ScreenRearMirrorTall",
+            ScreenWidth = 0.7f
+        };
 
         // ---- fixation -------------------------------------------------------------------------
 
@@ -90,6 +98,17 @@ namespace MirrorExperiment
         /// is fixed to - the body, the mirror or the head - and its size. See
         /// FixationPointSettings.
         public FixationPointSettings FixationPoint          { get; set; } = new FixationPointSettings();
+
+        // ---- operator's view and figures --------------------------------------------------
+
+        /// Which eye the operator's "Unity view" panel shows when the app starts.
+        /// test1 on the Debug tab switches it while the app runs.
+        public EyeMirror.Eye OperatorViewEye                { get; set; } = EyeMirror.Eye.Left;
+
+        /// Pictures of the middle of the stimulus, for figures: the first trial of
+        /// each condition in a run, the head held straight ahead. Off by default.
+        /// See SnapshotModule.
+        public SnapshotSettings Snapshots                   { get; set; } = new SnapshotSettings();
 
         // ---- positions ------------------------------------------------------------------------
 
@@ -119,7 +138,17 @@ namespace MirrorExperiment
 
         public TimeSpan DelayBeforeStartSound               { get; set; } = TimeSpan.FromSeconds(1.5);
         public TimeSpan DelayAfterStartSignal               { get; set; } = TimeSpan.FromSeconds(0.5);
+        /// Answers are taken from this long before the stimulus ends, so the
+        /// participant need not wait out a movement already judged. The movement
+        /// still runs to its end. 0 = only once it has. At most StimulusDuration.
+        public TimeSpan AnswerWindowBeforeEnd               { get; set; } = TimeSpan.FromSeconds(0.5);
+
+        /// From the end of the stimulus, however early the answer came.
         public TimeSpan TimeToAnswer                        { get; set; } = TimeSpan.FromSeconds(2);
+
+        /// The platform waits at least this long after the stimulus ends, and at
+        /// least DelayAfterAnswerSignal after the answer, before it goes back.
+        public TimeSpan PauseBeforeReturn                   { get; set; } = TimeSpan.FromSeconds(0.5);
         public TimeSpan DelayAfterAnswerSignal              { get; set; } = TimeSpan.Zero;
 
         // ---- sounds ---------------------------------------------------------------------------

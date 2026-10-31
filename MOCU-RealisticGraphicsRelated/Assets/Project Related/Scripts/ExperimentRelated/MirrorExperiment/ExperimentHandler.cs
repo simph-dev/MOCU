@@ -1,9 +1,13 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 
 using MoogModule;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
+
+using HeadsetSnapshot = SnapshotModule.HeadsetSnapshot;
 
 // TemporalSound lives in the RaceExperiment namespace but is a generic sound
 // player, so it is aliased in rather than shared through a `using` that would
@@ -39,6 +43,16 @@ namespace MirrorExperiment
 
         /// Where we last commanded the platform to be, so moves can chain.
         private DofParameters _moogPosition;
+
+        /// When the platform's last move is expected to be over, in realtime
+        /// seconds, so the next one is not sent while it is still going.
+        private float _moogBusyUntil;
+
+        /// Park pressed and Engage not since. Kept apart from _moogPosition because
+        /// by default the park pose and the neutral one are the same numbers, so
+        /// the position alone cannot tell a parked platform from an engaged one.
+        /// False at startup: whether the platform is engaged then is not known here.
+        private bool _moogParked;
 
         private Transform _cameras;
         private Transform _vrCamera;
@@ -90,7 +104,15 @@ namespace MirrorExperiment
         private int _cabinLayer = -1;
 
         private Vector3 _manualOffset = Vector3.zero;
-        private float _yRotationOffset = 0f;
+
+        /// How the camera rig is turned so that the head, as it was at calibration
+        /// - "look straight ahead and keep still" - looks along world +Z with the
+        /// horizon level: its yaw, pitch and roll all undone.
+        private Quaternion _rigRotation = Quaternion.identity;
+
+        /// The head's pitch, yaw and roll at the last calibration, signed degrees,
+        /// for the info panel: what was taken as zero.
+        private Vector3 _calibratedHead;
 
         /// Non-null when the config file could not be read. The experiment refuses
         /// to start in that state rather than quietly running on defaults.
@@ -109,10 +131,29 @@ namespace MirrorExperiment
         /// finished while the next one is already being prepared.
         private Trial _lastCompletedTrial;
 
-        /// Set by the Pause button, honoured at the top of the next trial. Never
-        /// mid-trial: the platform follows a wall-clock trajectory, so stopping it
-        /// halfway would leave the participant parked in the middle of a movement.
+        /// Set by the Pause button. Takes effect at once: a trial it cuts into is
+        /// dropped and run again after Resume. The platform is never stopped
+        /// halfway - it follows a wall-clock trajectory - but finishes the move it
+        /// is making before it goes back (DropTrial).
         private bool _pauseRequested;
+
+        /// When answers start being taken, realtime seconds: AnswerWindowBeforeEnd
+        /// before the stimulus is due to end. Set as it starts.
+        private float _answersOpenAt;
+
+        /// When the stimulus actually ended, and when the answer came - or the time
+        /// to answer ran out - in realtime seconds.
+        private float _motionEndedAt;
+        private float _answeredAt;
+
+        /// Pictures for figures (SnapshotModule), posed with the car in
+        /// ApplyCameraPose; and the conditions already taken in this run.
+        private HeadsetSnapshot _snapshot;
+        private readonly HashSet<int> _snapshotsTaken = new();
+
+        /// The pass copying the headset's picture to the operator's panel, kept to
+        /// switch which eye it copies.
+        private EyeMirror _eyeMirror;
 
         /// Small extra slack on top of the platform's expected travel time, for
         /// command latency and settling.
@@ -157,20 +198,27 @@ namespace MirrorExperiment
 
             _fixationPoint = CreateChild("FixationPoint").AddComponent<FixationPoint>();
 
-            // Already here, not only on Start, so they can be looked at in the
-            // headset before a run begins. Start reports a bad setting to the
-            // researcher; this early there is only the log.
-            foreach (string problem in new[] { ConfigureRearView(), ConfigureFixationPoint() })
-                if (problem != null)
-                    Debug.LogError($"MirrorExperiment: {problem}");
+            _snapshot = CreateChild("Snapshot").AddComponent<HeadsetSnapshot>();
+
+            // Built already here, not only on Start, so that the star cloud knows
+            // how far the screen's corners reach. Start reports a bad setting to
+            // the researcher; this early there is only the log.
+            string screenProblem = ConfigureRearView();
+
+            if (screenProblem != null)
+                Debug.LogError($"MirrorExperiment: {screenProblem}");
 
             // Already here, not only on Start, so that the AlwaysVisible preview
             // shows the cloud the config describes rather than the Inspector's.
-            // After the screen, whose image says how far its corners reach.
+            // After the screen, whose image says how far its corners reach - and
+            // with the screen still on.
             _starField?.Configure(_parameters.StarField, StarHoleRadius());
 
             // The headset camera does not render the stars' layer until told to.
             ShowStarsTo(outside: true, inside: true);
+
+            // Until Start: the fixation point alone, in front of the head.
+            ShowIdleLook();
 
             _input.GotAnswer_Left += HandleInput_Left;
             _input.GotAnswer_Right += HandleInput_Right;
@@ -188,6 +236,19 @@ namespace MirrorExperiment
             _experimentTabHandler.StoptExperimentBtnClicked += (eventObj) => StartCoroutine(StopExperiment());
             _experimentTabHandler.PauseExperimentBtnClicked += (eventObj) => RequestPause();
             _experimentTabHandler.ResumeExperimentBtnClicked += (eventObj) => RequestResume();
+
+            GetComponent<DebugTabHandler>().testBtn1Clicked += (eventObj) => ToggleOperatorViewEye();
+        }
+
+        /// test1 on the Debug tab: the other eye in the operator's view. Stays until
+        /// switched back - Start does not reset it to the config's.
+        private void ToggleOperatorViewEye()
+        {
+            if (_eyeMirror == null)
+                return;
+
+            _eyeMirror.eye = _eyeMirror.eye == EyeMirror.Eye.Left ? EyeMirror.Eye.Right : EyeMirror.Eye.Left;
+            _experimentTabHandler.PrintToWarnings($"Operator view: {_eyeMirror.eye.ToString().ToLowerInvariant()} eye\n");
         }
 
         public override void ManagedStart()
@@ -221,7 +282,7 @@ namespace MirrorExperiment
                 z = _parameters.CameraStartPosition.Surge + _cameraOffset.Surge
             };
 
-            _cameras.rotation = Quaternion.Euler(0, _yRotationOffset, 0);
+            _cameras.rotation = _rigRotation;
             _cameras.position = basePosition + _manualOffset;
 
             // Debug: the eye goes where the keyboard puts it, relative to its
@@ -230,7 +291,7 @@ namespace MirrorExperiment
             // below is left alone, as when a participant moves their head.
             if (_keyboardHead != null && _keyboardHead.Active)
             {
-                _cameras.rotation = Quaternion.Euler(_keyboardHead.Pitch, _yRotationOffset + _keyboardHead.Yaw, 0f);
+                _cameras.rotation = Quaternion.Euler(0f, _keyboardHead.Yaw, 0f) * _rigRotation * Quaternion.Euler(_keyboardHead.Pitch, 0f, 0f);
                 _cameras.position = basePosition + _keyboardHead.Offset - _cameras.rotation * _vrCamera.localPosition;
             }
 
@@ -239,57 +300,86 @@ namespace MirrorExperiment
 
             if (_fixationPoint != null)
                 _fixationPoint.SetCarAnchor(basePosition);
+
+            // The head is held at the eye's place in the car, straight ahead and level.
+            if (_snapshot != null)
+                _snapshot.SetAnchor(basePosition, Quaternion.identity);
         }
 
         // ..........................................................
 
-        // Three calibrations, bound to three hotkeys and used at three moments.
-        // "Position" below means all three axes - lateral, forward and height - not
-        // just height, whatever the CenterHead_Height hotkey is called.
+        // Three calibrations, bound to three hotkeys. "Position" below means all
+        // three axes - lateral, forward and height - not just height, whatever the
+        // CenterHead_Height hotkey is called. "Rotation" means the head's whole
+        // rotation - yaw, pitch and roll: "look straight ahead and keep still" is
+        // the zero (see _rigRotation). Before any calibration, level is the
+        // headset's own: gravity.
         //
         //   CalibrateHead          both: eye to CameraStartPosition, gaze to world +Z
-        //                          run once at startup, from GeneralScript
-        //   CalibrateHeadPosition  position only, leaves the calibrated gaze direction
-        //                          alone - run again on every Start
+        //                          run at startup, from GeneralScript - where only
+        //                          the angles matter, since until Start everything
+        //                          shown follows the head - and again on every Start
+        //   CalibrateHeadPosition  position only, leaves the calibrated rotation alone
         //   CalibrateHeadRotation  rotation only, and deliberately leaves the
         //                          participant where they are: it solves for an offset
         //                          that preserves the current world eye position
 
-        /// Eye to CameraStartPosition on all three axes, gaze to world +Z.
+        /// Eye to CameraStartPosition on all three axes, gaze to world +Z, level.
         public void CalibrateHead()
         {
-            _yRotationOffset = -_vrCamera.localEulerAngles.y;
-            Quaternion targetRot = Quaternion.Euler(0, _yRotationOffset, 0);
-            _manualOffset = -(targetRot * _vrCamera.localPosition);
+            TakeHeadAsLevel();
+            _manualOffset = -(_rigRotation * _vrCamera.localPosition);
 
             ApplyCameraPose();
-            Debug.Log("Head was calibrated");
+            Debug.Log($"Head was calibrated: {DescribeCalibration()}");
         }
 
         public void CalibrateHeadRotation()
         {
             Vector3 currentWorldEyePos = _cameras.position + (_cameras.rotation * _vrCamera.localPosition);
-            _yRotationOffset = -_vrCamera.localEulerAngles.y;
+            TakeHeadAsLevel();
             Vector3 basePos = new Vector3(
                 _parameters.CameraStartPosition.Sway + _cameraOffset.Sway,
                 _parameters.CameraStartPosition.Heave,
                 _parameters.CameraStartPosition.Surge + _cameraOffset.Surge);
-            Quaternion nextRot = Quaternion.Euler(0, _yRotationOffset, 0);
-            _manualOffset = currentWorldEyePos - basePos - (nextRot * _vrCamera.localPosition);
+            _manualOffset = currentWorldEyePos - basePos - (_rigRotation * _vrCamera.localPosition);
 
             ApplyCameraPose();
-            Debug.Log("Head rotation was calibrated");
+            Debug.Log($"Head rotation was calibrated: {DescribeCalibration()}");
         }
 
         /// Recentres the eye on CameraStartPosition - lateral, forward and height -
-        /// without touching the gaze direction fixed at startup.
+        /// without touching the calibrated rotation.
         public void CalibrateHeadPosition()
         {
-            Quaternion currentRot = Quaternion.Euler(0, _yRotationOffset, 0);
-            _manualOffset = -(currentRot * _vrCamera.localPosition);
+            _manualOffset = -(_rigRotation * _vrCamera.localPosition);
 
             ApplyCameraPose();
             Debug.Log("Head position was calibrated (all three axes)");
+        }
+
+        /// The head's rotation undone: the rig rotation that leaves the head, as it
+        /// is now, looking along world +Z, level and unrolled.
+        private void TakeHeadAsLevel()
+        {
+            Vector3 angles = _vrCamera.localEulerAngles;
+
+            _calibratedHead = new Vector3(
+                Mathf.DeltaAngle(0f, angles.x), Mathf.DeltaAngle(0f, angles.y), Mathf.DeltaAngle(0f, angles.z));
+
+            _rigRotation = Quaternion.Inverse(_vrCamera.localRotation);
+        }
+
+        /// In Unity positive yaw turns the head right, positive pitch tilts it
+        /// down and positive roll tilts its top to the left.
+        private string DescribeCalibration()
+        {
+            return $"yaw {Describe(_calibratedHead.y, "right", "left")}, " +
+                   $"pitch {Describe(_calibratedHead.x, "down", "up")}, " +
+                   $"roll {Describe(_calibratedHead.z, "left", "right")} taken as zero";
+
+            static string Describe(float degrees, string positive, string negative) =>
+                degrees == 0f ? "0" : $"{Mathf.Abs(degrees):0.0} {(degrees > 0f ? positive : negative)}";
         }
 
         // ..........................................................
@@ -313,6 +403,7 @@ namespace MirrorExperiment
 
             _moogHandler.Engage();
             _moogPosition = _parameters.MoogNeutralPosition;
+            _moogParked = false;
         }
 
         private void DisengageMoog()
@@ -325,6 +416,7 @@ namespace MirrorExperiment
 
             _moogHandler.Disengage();
             _moogPosition = _parameters.MoogParkPosition;
+            _moogParked = true;
         }
 
         /// Reads the config file. Called at startup and again on every start, so the
@@ -376,19 +468,45 @@ namespace MirrorExperiment
 
         /// Re-applies the config to the fixation point, which is also what switches
         /// it off. Returns what is wrong with its settings, or null.
-        private string ConfigureFixationPoint()
+        ///
+        /// During the run the dot is where the config puts it. Before Start, and
+        /// once the run is over, it hangs straight ahead of the head instead,
+        /// following it wherever the body goes (FixationAnchor.Head).
+        private string ConfigureFixationPoint(bool running)
         {
+            var settings = running ? _parameters.FixationPoint : new FixationPointSettings
+            {
+                Enabled = _parameters.FixationPoint.Enabled,
+                Anchor = FixationAnchor.Head,
+                Distance = _parameters.FixationPoint.Distance,
+                Diameter = _parameters.FixationPoint.Diameter
+            };
+
             // The cabin layer, so that the mirror does not show it a second time,
             // reflected. The headset camera's own layer if there is no cabin layer -
             // then there is no mirror either.
             _fixationPoint.Configure(
-                _parameters.FixationPoint,
+                settings,
                 _parameters.RearView,
                 _vrCamera,
                 _cabinLayer >= 0 ? _cabinLayer : _vrCamera.gameObject.layer,
                 out string problem);
 
             return problem;
+        }
+
+        /// Before Start, and once the run is over: the fixation point alone, in
+        /// front of the head. The screen comes back on with Start, which applies
+        /// the config to it again (RearView.Configure switches it on).
+        private void ShowIdleLook()
+        {
+            if (_rearView != null)
+                _rearView.gameObject.SetActive(false);
+
+            string problem = ConfigureFixationPoint(running: false);
+
+            if (problem != null)
+                Debug.LogError($"MirrorExperiment: {problem}");
         }
 
         /// Shows the stars, or not, to the headset camera - the field seen directly -
@@ -459,7 +577,9 @@ namespace MirrorExperiment
             var volume = CreateChild("EyeMirrorVolume").AddComponent<CustomPassVolume>();
             volume.isGlobal = true;
             volume.injectionPoint = CustomPassInjectionPoint.AfterPostProcess;
-            volume.AddPassOfType<EyeMirror>().targetTexture = target;
+            _eyeMirror = volume.AddPassOfType<EyeMirror>();
+            _eyeMirror.targetTexture = target;
+            _eyeMirror.eye = _parameters.OperatorViewEye;
         }
 
         /// The star cloud, on the Stars layer (see StarsLayerName). The Inspector's
@@ -532,7 +652,7 @@ namespace MirrorExperiment
             string problem = Experiment.FindConditionProblem(_parameters)
                              ?? FindMissingStars()
                              ?? ConfigureRearView()
-                             ?? ConfigureFixationPoint();
+                             ?? ConfigureFixationPoint(running: true);
 
             // Before giving up on a bad config, not after: a mirror configured just
             // now copied the headset camera's culling mask, star layers and all,
@@ -541,6 +661,8 @@ namespace MirrorExperiment
 
             if (problem != null)
             {
+                // The screen may have just been switched on with the config.
+                ShowIdleLook();
                 _experimentTabHandler.PrintToWarnings($"Bad config, fix it and press Start again:\n{ParametersFile.FilePath}\n{problem}\n");
                 return;
             }
@@ -554,6 +676,7 @@ namespace MirrorExperiment
 
             _experiment = new Experiment(_parameters);
             _sessionWriter = null;
+            _snapshotsTaken.Clear();
             _currentTrial = null;
             _lastCompletedTrial = null;
             _pauseRequested = false;
@@ -566,8 +689,11 @@ namespace MirrorExperiment
                 _starField.Configure(_parameters.StarField, StarHoleRadius());
             }
 
+            // Angles and position both: the participant has been told to look
+            // straight ahead and keep still. At startup only the angles matter -
+            // until Start everything shown follows the head.
             CanUseUpdateMethod = true;
-            CalibrateHeadPosition();
+            CalibrateHead();
             _loopCoroutine = StartCoroutine(Loop());
         }
 
@@ -597,6 +723,7 @@ namespace MirrorExperiment
             _starField?.Hide();
             yield return MoveMoogTo(_parameters.MoogParkPosition, _parameters.MoogReturnDuration);
             _experimentState = ExperimentState.Finished;
+            ShowIdleLook();
             Debug.Log("Experiment stopped");
         }
 
@@ -622,8 +749,30 @@ namespace MirrorExperiment
 
                 // here waiting for 'start btn' event
                 yield return WaitingToStartSignal();
+
+                // Pause takes effect at once (RequestPause). Before the start
+                // signal nothing has moved yet: straight on to the pause.
+                if (_pauseRequested)
+                    continue;
+
                 yield return Stimulus();
+
+                if (_pauseRequested)
+                {
+                    yield return DropTrial();
+                    continue;
+                }
+
+                _trialState = TrialState.AnswerPhase;
                 yield return AnswerPhase();
+
+                // Paused before an answer came: nothing to record.
+                if (_currentTrial.ReceivedAnswer == TrialAnswer.None)
+                {
+                    yield return DropTrial();
+                    continue;
+                }
+
                 yield return Returning();
                 yield return Analyzation();
             }
@@ -631,6 +780,7 @@ namespace MirrorExperiment
             _trialState = TrialState.None;
             _experimentState = ExperimentState.Finished;
             _loopCoroutine = null;
+            ShowIdleLook();
             Debug.Log("Experiment finished");
         }
 
@@ -648,7 +798,47 @@ namespace MirrorExperiment
                 return;
 
             _pauseRequested = true;
-            _experimentTabHandler.PrintToWarnings("Pausing after the current trial\n");
+
+            bool moving = _trialState == TrialState.Stimulus;
+            bool answering = _trialState == TrialState.AnswerPhase && _currentTrial?.ReceivedAnswer == TrialAnswer.None;
+
+            _experimentTabHandler.PrintToWarnings(moving || answering
+                ? "Pausing now - this trial is dropped and runs again after Resume\n"
+                : "Pausing now\n");
+        }
+
+        /// Pause pressed in the middle of a trial, before its answer: the trial is
+        /// dropped - not recorded, and its staircase not moved - and runs again
+        /// after Resume, with a heading drawn afresh. The stars go at once. The
+        /// platform finishes the move it is making, since it cannot be stopped
+        /// halfway, and then goes back to neutral, where the pause holds it.
+        private IEnumerator DropTrial()
+        {
+            _trialState = TrialState.Returning;
+            _starField?.Hide();
+            ShowStarsTo(outside: true, inside: true);
+            _cameraOffset = DofParameters.Zero;
+
+            // An answer from the last moments of a stimulus cut short is not kept:
+            // the trial will be run again in full.
+            _currentTrial.ReceivedAnswer = TrialAnswer.None;
+            _currentTrial.ResponseTime = null;
+
+            while (Time.realtimeSinceStartup < _moogBusyUntil)
+                yield return null;
+
+            yield return MoveMoogTo(_parameters.MoogNeutralPosition, _parameters.MoogReturnDuration);
+
+            Debug.Log($"Trial {_currentTrial.Index + 1} dropped by Pause - it runs again after Resume");
+        }
+
+        /// Waits this long in real time, or until Pause is pressed.
+        private IEnumerator WaitUnlessPaused(float seconds)
+        {
+            float until = Time.realtimeSinceStartup + seconds;
+
+            while (Time.realtimeSinceStartup < until && !_pauseRequested)
+                yield return null;
         }
 
         private void RequestResume()
@@ -664,7 +854,8 @@ namespace MirrorExperiment
 
         /// Just holds, between trials. The next trial has not been prepared yet and
         /// every staircase is untouched, so the run continues exactly where it left
-        /// off.
+        /// off. A trial Pause cut into has already brought the platform back to
+        /// neutral (DropTrial).
         ///
         /// The platform is deliberately left alone: parking and unparking is the
         /// researcher's call, made with the Park and Engage buttons, which stay live
@@ -712,10 +903,11 @@ namespace MirrorExperiment
             // parked during a break and not engaged again. Halt instead of moving it:
             // never move the platform on an assumption, and never run a trial whose
             // vestibular stimulus would be wrong.
-            if (_currentTrial.HasVestibular && _moogPosition != _parameters.MoogNeutralPosition)
+            if (_currentTrial.HasVestibular && (_moogParked || _moogPosition != _parameters.MoogNeutralPosition))
             {
-                _experimentTabHandler.PrintToWarnings(
-                    "Platform is not at its neutral position - press Engage, then Resume\n");
+                _experimentTabHandler.PrintToWarnings(_moogParked
+                    ? "Platform is parked - press Engage, then Resume\n"
+                    : "Platform is not at its neutral position - press Engage, then Resume\n");
 
                 _pauseRequested = true;
                 yield break;
@@ -724,7 +916,10 @@ namespace MirrorExperiment
             // No pre-positioning: the platform already sits at its home point and
             // the stimulus travels straight out from there, so engage and park can
             // happen from where it stands.
-            yield return new WaitForSeconds((float)_parameters.DelayBeforeStartSound.TotalSeconds);
+            yield return WaitUnlessPaused((float)_parameters.DelayBeforeStartSound.TotalSeconds);
+
+            if (_pauseRequested)
+                yield break;
 
             if (_parameters.PlayStartTrialSound)
                 _sound.PlaySound_Start();
@@ -734,42 +929,52 @@ namespace MirrorExperiment
 
         private IEnumerator WaitingToStartSignal()
         {
-            while (_trialState != TrialState.PreStimulusPause)
+            while (_trialState != TrialState.PreStimulusPause && !_pauseRequested)
                 yield return null;
 
-            yield return new WaitForSeconds((float)_parameters.DelayAfterStartSignal.TotalSeconds);
+            yield return WaitUnlessPaused((float)_parameters.DelayAfterStartSignal.TotalSeconds);
         }
 
         private IEnumerator Stimulus()
         {
+            float stimulusStartedAt = Time.realtimeSinceStartup;
+
+            _answersOpenAt = stimulusStartedAt + (float)(
+                _parameters.DelayBetweenMoogAndVr + _parameters.StimulusDuration - _parameters.AnswerWindowBeforeEnd).TotalSeconds;
+
             _trialState = TrialState.Stimulus;
             _experiment.MarkTrialStarted();
-
-            float stimulusStartedAt = Time.realtimeSinceStartup;
 
             // --- vestibular half: the platform leads, VR follows after a fixed delay
             if (_currentTrial.HasVestibular)
             {
                 var from = _parameters.MoogNeutralPosition;
                 var to = from + HeadingToMoogDisplacement(_currentTrial.PhysicalVestibularHeading);
+                var commanded = _parameters.StimulusDuration * _parameters.MoogMovementDurationCorrectionFactor;
 
-                _moogHandler.MoveByTrajectory(MakeTrajectory(
-                    from, to,
-                    _parameters.StimulusDuration * _parameters.MoogMovementDurationCorrectionFactor,
-                    DelayCompensationStrategy.Ignore));
+                _moogHandler.MoveByTrajectory(MakeTrajectory(from, to, commanded, DelayCompensationStrategy.Ignore));
 
                 _moogPosition = to;
+                _moogBusyUntil = Time.realtimeSinceStartup + MoogTravelWaitSeconds(commanded);
             }
 
             // Waited on every trial, not just the ones with a platform, so that the
             // stimulus starts at the same moment after the participant's button press
             // regardless of condition.
-            yield return new WaitForSeconds((float)_parameters.DelayBetweenMoogAndVr.TotalSeconds);
+            yield return WaitUnlessPaused((float)_parameters.DelayBetweenMoogAndVr.TotalSeconds);
+
+            // Pause ends the stimulus at once - nothing more is shown, and the trial
+            // is dropped (Loop).
+            if (_pauseRequested)
+            {
+                _currentTrial.MeasuredStimulusSeconds = Time.realtimeSinceStartup - stimulusStartedAt;
+                yield break;
+            }
 
             // --- visual half
             if (!_currentTrial.Condition.HasAnyVisual || _starField == null)
             {
-                yield return new WaitForSeconds((float)_parameters.StimulusDuration.TotalSeconds);
+                yield return WaitUnlessPaused((float)_parameters.StimulusDuration.TotalSeconds);
             }
             else
             {
@@ -791,6 +996,9 @@ namespace MirrorExperiment
                 ShowStarsTo(_currentTrial.HasVisualOutside, _currentTrial.HasVisualInside);
                 _starField.Show(_currentTrial.Coherence, _parameters.NoiseUpdateHz);
 
+                if (_parameters.Snapshots.Enabled && _snapshotsTaken.Add(_currentTrial.ConditionIndex))
+                    TakeSnapshots(_currentTrial.Condition.Label);
+
                 var trajectoryManager = new TrajectoryManager(MakeTrajectory(
                     DofParameters.Zero,
                     HeadingToCameraDisplacement(_currentTrial.PhysicalVisualHeading),
@@ -799,7 +1007,7 @@ namespace MirrorExperiment
 
                 TimeSpan elapsed = TimeSpan.Zero;
 
-                while (elapsed <= _parameters.StimulusDuration)
+                while (elapsed <= _parameters.StimulusDuration && !_pauseRequested)
                 {
                     elapsed += TimeSpan.FromSeconds(Time.deltaTime);
 
@@ -819,37 +1027,67 @@ namespace MirrorExperiment
             }
 
             _currentTrial.MeasuredStimulusSeconds = Time.realtimeSinceStartup - stimulusStartedAt;
-            _trialState = TrialState.AnswerPhase;
         }
 
+        /// The middle of the stimulus that has just started, saved by the snapshot
+        /// module: the head held at the eye's place in the car, straight ahead and
+        /// level (see SetAnchor in ApplyCameraPose).
+        private void TakeSnapshots(string label)
+        {
+            _snapshot.Take(
+                _parameters.Snapshots,
+                _headsetCamera,
+                Path.Combine(ParametersFile.DefaultFolderPath, "Snapshots"),
+                $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{label}",
+                (float)_parameters.StimulusDuration.TotalSeconds / 2f,
+                path => _experimentTabHandler.PrintToWarnings($"Snapshot saved: {Path.GetFileName(path)}\n"));
+        }
+
+        /// The answer may already be in, from the last AnswerWindowBeforeEnd of the
+        /// stimulus. The time to answer runs from the stimulus's end either way,
+        /// and so does the response time.
         private IEnumerator AnswerPhase()
         {
+            _motionEndedAt = Time.realtimeSinceStartup;
             float timeout = (float)_parameters.TimeToAnswer.TotalSeconds;
-            float elapsed = 0f;
 
-            while (_currentTrial.ReceivedAnswer == TrialAnswer.None && elapsed < timeout)
-            {
-                elapsed += Time.deltaTime;
+            while (_currentTrial.ReceivedAnswer == TrialAnswer.None && Time.realtimeSinceStartup - _motionEndedAt < timeout
+                   && !_pauseRequested)
                 yield return null;
-            }
 
-            _currentTrial.ResponseTime = elapsed;
+            // Paused before an answer: left unanswered, and the trial dropped (Loop).
+            if (_currentTrial.ReceivedAnswer == TrialAnswer.None && _pauseRequested)
+                yield break;
 
             if (_currentTrial.ReceivedAnswer == TrialAnswer.None)
             {
-                _currentTrial.ResponseTime = -1f;
+                _answeredAt = Time.realtimeSinceStartup;
                 _experiment.SetParticipantAnswer(TrialAnswer.Timeout);
 
                 if (_parameters.PlayTimeoutSound)
                     _sound.PlaySound_AnswerIsLate();
             }
+            else
+            {
+                _currentTrial.ResponseTime = _answeredAt - _motionEndedAt;
+            }
 
             _trialState = TrialState.Returning;
         }
 
+        /// The platform back to neutral, ready for the next trial: once its move is
+        /// over, PauseBeforeReturn after the stimulus ended and
+        /// DelayAfterAnswerSignal after the answer - whichever comes last, so an
+        /// early answer does not send it straight back.
         private IEnumerator Returning()
         {
-            yield return new WaitForSeconds((float)_parameters.DelayAfterAnswerSignal.TotalSeconds);
+            float until = Mathf.Max(
+                _moogBusyUntil,
+                _motionEndedAt + (float)_parameters.PauseBeforeReturn.TotalSeconds,
+                _answeredAt + (float)_parameters.DelayAfterAnswerSignal.TotalSeconds);
+
+            while (Time.realtimeSinceStartup < until)
+                yield return null;
 
             _cameraOffset = DofParameters.Zero;
 
@@ -995,21 +1233,23 @@ namespace MirrorExperiment
 
         // ..........................................................
 
-        private void HandleInput_Left()
+        /// The first answer of the trial counts, given in the answer phase or
+        /// already in the last AnswerWindowBeforeEnd of the stimulus.
+        private bool AnswersOpen =>
+            _currentTrial != null && _currentTrial.ReceivedAnswer == TrialAnswer.None
+            && (_trialState == TrialState.AnswerPhase
+                || _trialState == TrialState.Stimulus && Time.realtimeSinceStartup >= _answersOpenAt);
+
+        private void HandleInput_Left() => TakeAnswer(TrialAnswer.Left);
+
+        private void HandleInput_Right() => TakeAnswer(TrialAnswer.Right);
+
+        private void TakeAnswer(TrialAnswer answer)
         {
-            if (_trialState != TrialState.AnswerPhase) return;
+            if (!AnswersOpen) return;
 
-            _experiment.SetParticipantAnswer(TrialAnswer.Left);
-
-            if (_parameters.PlayAnswerReceivedSound)
-                _sound.PlaySound_GotAnswer();
-        }
-
-        private void HandleInput_Right()
-        {
-            if (_trialState != TrialState.AnswerPhase) return;
-
-            _experiment.SetParticipantAnswer(TrialAnswer.Right);
+            _answeredAt = Time.realtimeSinceStartup;
+            _experiment.SetParticipantAnswer(answer);
 
             if (_parameters.PlayAnswerReceivedSound)
                 _sound.PlaySound_GotAnswer();
@@ -1049,6 +1289,9 @@ namespace MirrorExperiment
                 $"white noise: {_sound?.GetNoiseStatus}\n" +
                 $"rear view: {DescribeRearView()}\n" +
                 $"head: {DescribeHead()}\n" +
+                $"calibration: {DescribeCalibration()}\n" +
+                $"operator view: {(_eyeMirror != null ? _eyeMirror.eye.ToString().ToLowerInvariant() + " eye" : "-")}\n" +
+                $"config: {ParametersFile.FilePath}\n" +
                 $"star noise: {_parameters.NoiseUpdateHz:F0} Hz asked / {(_starField != null ? _starField.MeasuredNoiseHz.ToString("F1") : "-")} Hz measured";
 
             _experimentTabHandler?.PrintToInfo(info, true);
@@ -1064,7 +1307,7 @@ namespace MirrorExperiment
             if (_currentTrial == null)
                 return "on";
 
-            return _currentTrial.Condition.InsideView == InsideView.Mirror ? "on, mirror view" : "on, screen view";
+            return $"on, {_currentTrial.Condition.InsideView.ToString().ToLowerInvariant()} view";
         }
 
         /// Where the eye is relative to its place in the car, in centimeters. It
@@ -1092,7 +1335,7 @@ namespace MirrorExperiment
             return
                 $"{trial.Condition.Label}, heading {trial.Heading:F2} deg\n" +
                 $"answered {trial.ReceivedAnswer}, expected {trial.CorrectAnswer} -> {verdict}\n" +
-                $"response time {(trial.ResponseTime < 0f ? "-" : trial.ResponseTime.ToString("F2") + " s")}, " +
+                $"response time {(trial.ResponseTime == null ? "-" : trial.ResponseTime.Value.ToString("+0.00;-0.00;0.00") + " s after the end")}, " +
                 $"stimulus {(trial.MeasuredStimulusSeconds < 0f ? "-" : trial.MeasuredStimulusSeconds.ToString("F2") + " s")}";
         }
     }
