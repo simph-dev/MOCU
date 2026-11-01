@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Keeps bin/ and obj/ out of the source folders.
+
+    Simph.Core is meant to be referenced by the Unity project as a local package
+    pointing straight at src/Simph.Core, so Unity's asset pipeline walks that
+    folder. If the .NET build left Simph.Core.dll in a bin/ subfolder there,
+    Unity would import it as a precompiled assembly alongside the one it compiles
+    itself from the same sources through Simph.Core.asmdef, and refuse both as
+    duplicates. Sending the output elsewhere avoids that entirely.
+
+    Deliberately placed in src/ rather than at the repository root: a root-level
+    file would also apply to MOCU-RealisticGraphicsRelated/Assembly-CSharp.csproj,
+    which Unity regenerates and owns.
+  -->
+
+  <PropertyGroup>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)../build/$(MSBuildProjectName)/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../build/$(MSBuildProjectName)/obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+</Project>

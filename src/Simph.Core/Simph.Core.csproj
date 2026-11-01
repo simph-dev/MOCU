@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The core of the system: the experiment's own logic, with no reference to
+    Unity, to a transport, or to the file system. The same sources are compiled
+    twice - by the .NET SDK for the daemon and the tests (this file), and by
+    Unity through Simph.Core.asmdef - so the target framework and language
+    version must stay inside what Unity accepts.
+
+    Unity 6000.6 compiles Assembly-CSharp as netstandard2.1 / C# 9, so:
+      - no record types and no 'init' accessors (both want IsExternalInit,
+        which netstandard2.1 does not carry)
+      - no file-scoped namespaces (C# 10)
+    Immutability is expressed with constructors and get-only properties instead.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <RootNamespace>Simph.Core</RootNamespace>
+    <AssemblyName>Simph.Core</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

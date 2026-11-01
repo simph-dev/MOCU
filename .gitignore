@@ -94,3 +94,12 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 **/[Aa]ssets/[Ss]treamingAssets/aa.meta
 **/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Simph (the new core, its daemon and its tests)
+# build/ is already covered by the **/[Bb]uild/ rule above; the test project
+# keeps its own bin/ because it lives outside src/ and Unity never looks there.
+tests/**/bin/
+
+# Simph.sln is written by hand, unlike the *.sln ignored above, which Unity
+# regenerates for Assembly-CSharp.
+!Simph.sln

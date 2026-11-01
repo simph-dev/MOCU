@@ -1,0 +1,7 @@
+{
+  "name": "com.simph.core",
+  "version": "0.1.0",
+  "displayName": "Simph Core",
+  "description": "The experiment's own logic, with no reference to Unity: time, geometry, motion plans and their limits. Compiled by Unity through Simph.Core.asmdef and by the .NET SDK for the daemon and the tests, from these same sources.",
+  "unity": "6000.6"
+}
