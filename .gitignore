@@ -103,3 +103,8 @@ tests/**/bin/
 # Simph.sln is written by hand, unlike the *.sln ignored above, which Unity
 # regenerates for Assembly-CSharp.
 !Simph.sln
+
+# Moog's own manuals and photographs of the machine. Kept in the working tree
+# so the documentation sits next to the code that implements it, but never
+# committed: these are the vendor's documents and ours only to use.
+Documentation/Moog (vendor, not tracked)/
