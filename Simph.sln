@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simph.Core.Tests", "tests\Simph.Core.Tests\Simph.Core.Tests.csproj", "{4C08127E-282C-44B5-8B30-6374EDBF7CE4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simph.MoogProbe", "src\Simph.MoogProbe\Simph.MoogProbe.csproj", "{B820D20F-4E43-40C4-8108-D49D8C846FA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,18 @@ Global
 		{4C08127E-282C-44B5-8B30-6374EDBF7CE4}.Release|x64.Build.0 = Release|Any CPU
 		{4C08127E-282C-44B5-8B30-6374EDBF7CE4}.Release|x86.ActiveCfg = Release|Any CPU
 		{4C08127E-282C-44B5-8B30-6374EDBF7CE4}.Release|x86.Build.0 = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|x64.Build.0 = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Debug|x86.Build.0 = Debug|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|x64.ActiveCfg = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|x64.Build.0 = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|x86.ActiveCfg = Release|Any CPU
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +66,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{0A725AB6-3C7C-4484-BA96-4CE854248782} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{4C08127E-282C-44B5-8B30-6374EDBF7CE4} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{B820D20F-4E43-40C4-8108-D49D8C846FA6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

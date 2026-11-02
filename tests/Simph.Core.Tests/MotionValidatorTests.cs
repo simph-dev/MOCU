@@ -42,16 +42,12 @@ public class MotionValidatorTests
     }
 
     /// <summary>
-    /// The finding this validator was written for. Compensating by commanding the
-    /// movement at 0.8 of its duration puts the surge axis at about 85% of the
-    /// MBC's 2.0 m/s^2 trajectory-filter limit. The movement is still legal, so
-    /// it is not refused - but there is no headroom left for the irregularity of
-    /// a real 1 kHz stream, and every irregular step becomes a local spike the
-    /// filter clips. That clipping is the braking observed on the surge axis
-    /// during diagonal movements.
+    /// Commanding the movement at 0.8 of its duration puts the surge axis at about
+    /// 85% of the MBC's 2.0 m/s^2 trajectory-filter limit. The movement is still
+    /// legal, so it is not refused, only flagged.
     /// </summary>
     [Fact]
-    public void Warns_that_the_compensated_command_leaves_no_acceleration_headroom_on_surge()
+    public void Warns_that_the_compensated_command_comes_close_to_the_filter_limit_on_surge()
     {
         var result = Validator().Validate(LabSetup.Commanded());
 
@@ -64,10 +60,8 @@ public class MotionValidatorTests
     }
 
     /// <summary>
-    /// And why it is surge and not sway. At the widest heading surge carries
-    /// 0.125 m of the 0.13 m, sway only 0.036 m, so sway asks for a quarter of
-    /// the acceleration and sits far from the limit. The measured lag was ~55 ms
-    /// on surge against ~10 ms on sway, in the same direction as this asymmetry.
+    /// At the widest heading surge carries 0.125 m of the 0.13 m, sway only
+    /// 0.036 m, so sway asks for a quarter of the acceleration.
     /// </summary>
     [Fact]
     public void Says_nothing_about_sway_which_has_room_to_spare()

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A standalone diagnostic host for the Moog MB-E-6DOF.
+
+    It exists to answer one question that no amount of reading can settle: where
+    the irregularity in our 1 kHz command stream is introduced. It talks to the
+    MBC directly over UDP, stamps every packet it sends and receives with the
+    performance counter, and writes the result as CSV so the stream can be lined
+    up against the MBC's own recorder files and event log.
+
+    Deliberately separate from MOCU-MoogControl: that daemon is linked into the
+    Unity build the experiments run from, and nothing here may disturb it.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--
+      Plain net8.0 rather than net8.0-windows: the only platform-specific thing
+      here is the winmm timeBeginPeriod P/Invoke, which needs no Windows TFM, and
+      dropping it lets the test project reference this one so the packet layout
+      can be asserted against the manual instead of against the hardware.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AssemblyName>Simph.MoogProbe</AssemblyName>
+    <RootNamespace>Simph.MoogProbe</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Server GC keeps collections off the send thread's critical path. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Simph.Core\Simph.Core.csproj" />
+  </ItemGroup>
+
+</Project>
