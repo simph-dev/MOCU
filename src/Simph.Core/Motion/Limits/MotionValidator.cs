@@ -33,10 +33,10 @@ namespace Simph.Core.Motion.Limits
         /// <param name="envelope">The machine's limits.</param>
         /// <param name="warnFraction">
         /// Fraction of a limit above which a plan is allowed but flagged. The
-        /// default of 0.8 exists because a plan at 90% of the acceleration limit
-        /// has no room left for the irregularity of a real command stream: a
-        /// single late packet turns into a local spike over the limit, and the
-        /// filter clips it.
+        /// default of 0.8 is a judgement call, not a property of the machine: the
+        /// MBC never refuses a command, and its trajectory filter lags any moving
+        /// input by v^2 / (2 ACC_LIM), near the limit or not. Past the limit the
+        /// output simply cannot keep the shape that was asked for.
         /// </param>
         /// <param name="onsetCatchUpBudget">
         /// How long the platform may trail the command at the start of a movement
@@ -125,7 +125,7 @@ namespace Simph.Core.Motion.Limits
             else if (fraction >= _warnFraction)
                 issues.Add(new ValidationIssue(IssueSeverity.Warning, axis, check,
                     $"peak {check} {value:F3} {unit} is {fraction * 100:F0}% of the limit " +
-                    $"{limit:F3} {unit}, leaving little room for stream irregularity", value, limit));
+                    $"{limit:F3} {unit}", value, limit));
         }
 
 

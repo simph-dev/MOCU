@@ -36,10 +36,12 @@ namespace Simph.Core.Motion.Limits
         /// <para><b>Acceleration</b> comes from the MBC's own configuration
         /// (Configuration Files/motionbase.xml, the DOF Trajectory Filter):
         /// ACC_LIM_X / Y / Z = 2.0 m/s^2, ACC_LIM_ROLL / PITCH / YAW = 1.75
-        /// rad/s^2. These are what actually bind. The machine's data sheet allows
+        /// rad/s^2. These are factory defaults. The machine's data sheet allows
         /// far more - 0.6 G on surge and sway, about 5.9 m/s^2 - so the 2.0 is a
-        /// configured ceiling rather than a mechanical one, and it is the stage
-        /// observed braking the X axis during diagonal movements.</para>
+        /// configured value rather than a mechanical one. The filter applies it
+        /// per axis, tracking its input at the speed from which it could still
+        /// stop in time. That lag grows with speed, so the faster axis falls
+        /// further behind, and that is what bends diagonal movements.</para>
         ///
         /// <para><b>Speed</b> comes from the data sheet (see the header of
         /// MoogModule.DofParameters), which is stricter than the MBC's
