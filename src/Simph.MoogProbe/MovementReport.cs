@@ -149,7 +149,7 @@ namespace Simph.MoogProbe
             return low * plan.Duration.TotalMilliseconds;
         }
 
-        private static double Crossing(double[] progress, IReadOnlyList<double> seconds, double level)
+        internal static double Crossing(double[] progress, IReadOnlyList<double> seconds, double level)
         {
             for (int n = 1; n < progress.Length; n++)
             {

@@ -27,6 +27,9 @@ namespace Simph.MoogProbe
                 return 0;
             }
 
+            if (args.Length == 2 && args[0] == "timing")
+                return StimulusTimingReport.Run(args[1]);
+
             if (!ProbeOptions.TryParse(args, out var options, out string? error))
             {
                 Console.Error.WriteLine(error);

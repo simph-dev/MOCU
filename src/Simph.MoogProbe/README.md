@@ -172,3 +172,18 @@ shows up in neither.
 - What the probe sends in each slot is decided by `RunSequencer`, which is covered
   by tests that need no hardware, including one that a listen run never sends
   anything but Null.
+
+## The picture against the platform
+
+The Heading experiment can log every stimulus: set `"LogStimulusTiming": true` in
+its config and each run leaves a folder under `Timing/` in the data folder, with
+the frames, the marks and the platform's commands and poses on one clock.
+
+```bash
+dotnet run --project src/Simph.MoogProbe -- timing "<data folder>/Timing/<run>"
+```
+
+The report gives when the command, the platform and the camera reach each level
+of the path, how far the camera is behind the platform, and how far head tracking
+moved the eye off the rig. A frame is stamped before it is rendered, so the
+picture's lateness is a lower bound.

@@ -325,6 +325,9 @@ namespace Simph.MoogProbe
   --arm                      permit a phase that moves the platform
   --yes                      skip the typed confirmation
 
+Simph.MoogProbe timing FOLDER reads a session folder written by the experiment's
+StimulusTimingLog and lays the picture and the platform on one clock.
+
 Start with the phase that cannot move anything:
 
   Simph.MoogProbe --phase listen --rate 1000 --declare 1000 --seconds 20
