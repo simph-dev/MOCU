@@ -122,6 +122,12 @@ namespace MirrorExperiment
         /// See SnapshotModule.
         public SnapshotSettings Snapshots                   { get; set; } = new SnapshotSettings();
 
+        /// Logs what was on screen and where the platform was, for every stimulus,
+        /// into Timing inside the data folder. A diagnostic, off by default: the
+        /// platform's feedback comes back over the daemon's pipe after each trial,
+        /// which no real session needs. See StimulusTimingLog.
+        public bool LogStimulusTiming                       { get; set; } = false;
+
         // ---- positions ------------------------------------------------------------------------
 
         /// Where the camera rig sits before the stimulus. All zero: this scene has no

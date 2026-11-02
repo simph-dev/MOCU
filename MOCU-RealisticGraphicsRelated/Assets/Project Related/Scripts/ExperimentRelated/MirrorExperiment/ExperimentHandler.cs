@@ -127,6 +127,9 @@ namespace MirrorExperiment
         /// session folder behind.
         private SessionWriter _sessionWriter;
 
+        /// Null unless Parameters.LogStimulusTiming is set.
+        private StimulusTimingLog _timingLog;
+
         /// Kept so the researcher can still read the outcome of the trial that just
         /// finished while the next one is already being prepared.
         private Trial _lastCompletedTrial;
@@ -698,6 +701,14 @@ namespace MirrorExperiment
 
             _experiment = new Experiment(_parameters);
             _sessionWriter = null;
+            _timingLog?.Dispose();
+            _timingLog = _parameters.LogStimulusTiming
+                ? new StimulusTimingLog(
+                    Path.Combine(ParametersFile.DataFolderFor(_parameters), "Timing", DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")),
+                    _moogHandler,
+                    _cameras,
+                    _vrCamera)
+                : null;
             _snapshotsTaken.Clear();
             _currentTrial = null;
             _lastCompletedTrial = null;
@@ -780,6 +791,8 @@ namespace MirrorExperiment
                     continue;
 
                 yield return Stimulus();
+
+                _timingLog?.EndTrial();
 
                 if (_pauseRequested)
                 {
@@ -968,6 +981,7 @@ namespace MirrorExperiment
 
             _trialState = TrialState.Stimulus;
             _experiment.MarkTrialStarted();
+            _timingLog?.BeginTrial(_currentTrial.Index, _currentTrial.HasVestibular);
 
             // --- vestibular half: the platform leads, VR follows after a fixed delay
             if (_currentTrial.HasVestibular)
@@ -976,6 +990,7 @@ namespace MirrorExperiment
                 var to = from + HeadingToMoogDisplacement(_currentTrial.PhysicalVestibularHeading);
                 var commanded = _parameters.StimulusDuration * _parameters.MoogMovementDurationCorrectionFactor;
 
+                _timingLog?.Mark("moog");
                 _moogHandler.MoveByTrajectory(MakeTrajectory(from, to, commanded, DelayCompensationStrategy.Ignore));
 
                 _moogPosition = to;
@@ -1028,6 +1043,8 @@ namespace MirrorExperiment
                     HeadingToCameraDisplacement(_currentTrial.PhysicalVisualHeading),
                     _parameters.StimulusDuration,
                     DelayCompensationStrategy.Jump));
+
+                _timingLog?.Mark("visual");
 
                 TimeSpan elapsed = TimeSpan.Zero;
 
