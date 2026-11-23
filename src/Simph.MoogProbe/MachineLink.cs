@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -91,9 +90,12 @@ namespace Simph.MoogProbe
         private string? _firstUnparsedFrom;
         private readonly object _unparsedLock = new object();
 
-        public MachineLink(IPEndPoint host, IPEndPoint mbc)
+        private readonly IClock _clock;
+
+        public MachineLink(IPEndPoint host, IPEndPoint mbc, IClock clock)
         {
             _mbc = mbc;
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             _socket.ReceiveBufferSize = 8 * 1024 * 1024;
@@ -172,7 +174,7 @@ namespace Simph.MoogProbe
             for (int copy = 0; copy < copies; copy++)
             {
                 _socket.SendTo(_sendBuffer, _mbc);
-                var sent = new Timestamp(Stopwatch.GetTimestamp());
+                var sent = _clock.Now;
 
                 _sent.Enqueue(new SentRecord(slot, sequence, due, sent, pose, command, copy > 0));
             }
@@ -188,7 +190,7 @@ namespace Simph.MoogProbe
                 try
                 {
                     int length = _socket.ReceiveFrom(buffer, ref from);
-                    var at = new Timestamp(Stopwatch.GetTimestamp());
+                    var at = _clock.Now;
 
                     _datagrams++;
 

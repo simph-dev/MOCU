@@ -9,31 +9,13 @@ namespace Simph.MoogProbe
     /// <summary>
     /// A fixed-rate loop on an absolute time grid: slot n is due at
     /// <c>start + n * interval</c>, computed from the start, never from the
-    /// previous wake-up.
-    ///
-    /// This is the one real difference from MOCU-MoogControl's IntervalExecutor,
-    /// and it is the difference that matters. That one does
-    ///
-    ///     QueryPerformanceCounter(out now);
-    ///     target = now + _interval.Ticks;
-    ///
-    /// on every iteration, so each period is measured from wherever the previous
-    /// one happened to finish. Any overshoot is absorbed into the next period
-    /// instead of being corrected. Its spin granularity overshoots by about 11 us
-    /// a tick, so that loop run verbatim on the lab PC sends 988.8 packets/s, not
-    /// 1000: very steady, but 1.1% slow for as long as it runs.
-    ///
-    /// It also mixes two tick units: <c>now</c> comes from the performance
-    /// counter while <c>_interval.Ticks</c> is TimeSpan's 100 ns unit. They agree
-    /// only because the counter on this machine happens to run at 10 MHz. On
-    /// hardware where it runs at 3.58 MHz or 1 MHz the loop silently runs 3x or
-    /// 10x too fast. Timestamp.ToTicks exists to make that conversion impossible
-    /// to forget, and is used here.
+    /// previous wake-up, so a late slot never delays the ones after it and the
+    /// average rate stays exact. (MOCU-MoogControl schedules from the previous
+    /// wake-up and so sends 988.8 packets/s on the lab PC instead of 1000.)
     ///
     /// A slot that is already past when we reach it is dropped rather than sent
-    /// late, and counted. For a position command stream that is the right choice:
-    /// the set-point is a function of time, so a fresh pose beats a stale one.
-    /// The count is what tells us afterwards whether the host kept up at all.
+    /// late, and counted: the set-point is a function of time, so a fresh pose
+    /// beats a stale one, and the count tells us whether the host kept up.
     /// </summary>
     public sealed class PacedLoop
     {
@@ -43,16 +25,17 @@ namespace Simph.MoogProbe
         [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
         private static extern uint TimeEndPeriod(uint milliseconds);
 
-        private readonly long _intervalTicks;
+        private readonly IClock _clock;
+        private readonly long _intervalNanoseconds;
         private readonly int _spinIterations;
 
-        public PacedLoop(TimeSpan interval)
+        public PacedLoop(TimeSpan interval, IClock clock)
         {
-            _intervalTicks = Timestamp.ToTicks(interval);
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            _intervalNanoseconds = Timestamp.ToNanoseconds(interval);
 
-            if (_intervalTicks <= 0)
-                throw new ArgumentOutOfRangeException(nameof(interval), interval,
-                    "The interval must be longer than one tick of the performance counter.");
+            if (_intervalNanoseconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(interval), interval, "The interval must be positive.");
 
             // Short enough that a slot is never overshot by a whole spin, long
             // enough that the loop is not hammering the counter.
@@ -75,24 +58,21 @@ namespace Simph.MoogProbe
             var thread = Thread.CurrentThread;
             var previousPriority = thread.Priority;
 
-            // The slot itself is timed by spinning on the performance counter, so
-            // the 15.6 ms scheduler tick does not limit it. These two only reduce
-            // how often and how long the thread gets preempted. This is less
-            // isolation than MOCU-MoogControl's SystemOptimizer gives its loop
-            // (High priority class and half the cores to itself), and the tails
-            // of the gap distribution show it.
+            // The slot itself is timed by spinning on the counter, so the 15.6 ms
+            // scheduler tick does not limit it. These two only reduce how often
+            // and how long the thread gets preempted.
             TimeBeginPeriod(1);
             thread.Priority = ThreadPriority.Highest;
 
             try
             {
-                long start = Stopwatch64();
+                long start = _clock.Now.Nanoseconds;
 
                 for (long slot = 0; !cancellation.IsCancellationRequested; slot++)
                 {
-                    long due = start + slot * _intervalTicks;
+                    long due = start + slot * _intervalNanoseconds;
 
-                    if (Stopwatch64() >= due + _intervalTicks)
+                    if (_clock.Now.Nanoseconds >= due + _intervalNanoseconds)
                     {
                         // Already past the end of this slot's window. Skip it.
                         SlotsDropped++;
@@ -115,9 +95,9 @@ namespace Simph.MoogProbe
             }
         }
 
-        private void SpinUntil(long due, CancellationToken cancellation)
+        private void SpinUntil(long dueNanoseconds, CancellationToken cancellation)
         {
-            while (Stopwatch64() < due)
+            while (_clock.Now.Nanoseconds < dueNanoseconds)
             {
                 if (cancellation.IsCancellationRequested)
                     return;
@@ -125,7 +105,5 @@ namespace Simph.MoogProbe
                 Thread.SpinWait(_spinIterations);
             }
         }
-
-        private static long Stopwatch64() => System.Diagnostics.Stopwatch.GetTimestamp();
     }
 }

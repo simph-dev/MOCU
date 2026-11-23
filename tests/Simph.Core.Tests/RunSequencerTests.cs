@@ -17,7 +17,7 @@ public class RunSequencerTests
     private static readonly Pose6 Away = Pose6.Translation(0.1, 0, -0.22);
 
     private static Timestamp Ms(double milliseconds) =>
-        new Timestamp(Timestamp.ToTicks(TimeSpan.FromMilliseconds(milliseconds)));
+        Timestamp.Zero + TimeSpan.FromMilliseconds(milliseconds);
 
     private static RunSequencer Sequencer(bool engages = true, double seconds = 1.0) =>
         new RunSequencer(engages, Neutral,

@@ -1,68 +1,75 @@
 using System;
-using System.Diagnostics;
 
 
 namespace Simph.Core.Time
 {
     /// <summary>
-    /// A moment on the one monotonic clock the whole system shares: the raw
-    /// QueryPerformanceCounter value, whose frequency is Stopwatch.Frequency.
+    /// A moment on the machine's monotonic clock, in nanoseconds since the
+    /// clock's origin (on Windows, the performance counter, which starts at boot).
     ///
-    /// Everything that gets a time - a sent packet, a received frame, a button
-    /// press, the start of a movement - is stamped with one of these, so that
-    /// records from the daemon, from Unity and from a test can be laid on one
-    /// axis without any conversion. DateTime is not used for this: on Windows
-    /// its resolution is coarser than a single tick of the 1 kHz motion loop,
-    /// and it is not monotonic, so two consecutive reads can come back equal or
-    /// even go backwards when the system clock is adjusted.
+    /// Every process on the machine reads the same clock through
+    /// <see cref="SystemClock"/>, so a packet sent by the daemon, a frame drawn by
+    /// Unity and a button press can be laid on one axis without conversion.
+    /// Nanoseconds rather than raw counter ticks, so a file written on one PC
+    /// can be read without knowing that PC's counter frequency. A long holds
+    /// about 292 years of them.
     ///
-    /// Wall-clock time appears once per session, in the manifest, as a recorded
-    /// pairing of one Timestamp with one UTC DateTimeOffset.
+    /// Wall-clock time appears once per session, in the manifest, as one
+    /// Timestamp paired with one UTC time.
     /// </summary>
     public readonly struct Timestamp : IEquatable<Timestamp>, IComparable<Timestamp>
     {
-        /// <summary>Raw counter value; Stopwatch.Frequency of these per second.</summary>
-        public long Ticks { get; }
+        private const long NanosecondsPerSecond = 1_000_000_000;
+        private const long NanosecondsPerTimeSpanTick = 100;
 
-        public Timestamp(long ticks) => Ticks = ticks;
+        public long Nanoseconds { get; }
+
+        public Timestamp(long nanoseconds) => Nanoseconds = nanoseconds;
 
         public static Timestamp Zero => new Timestamp(0);
 
-        /// <summary>Counter ticks in one second, read once from the hardware.</summary>
-        public static long TicksPerSecond => Stopwatch.Frequency;
-
-
-        public static Timestamp operator +(Timestamp t, TimeSpan d) => new Timestamp(t.Ticks + ToTicks(d));
-        public static Timestamp operator -(Timestamp t, TimeSpan d) => new Timestamp(t.Ticks - ToTicks(d));
-
-        /// <summary>How long from <paramref name="b"/> until <paramref name="a"/>.</summary>
-        public static TimeSpan operator -(Timestamp a, Timestamp b) => ToTimeSpan(a.Ticks - b.Ticks);
-
-        public static bool operator <(Timestamp a, Timestamp b) => a.Ticks < b.Ticks;
-        public static bool operator >(Timestamp a, Timestamp b) => a.Ticks > b.Ticks;
-        public static bool operator <=(Timestamp a, Timestamp b) => a.Ticks <= b.Ticks;
-        public static bool operator >=(Timestamp a, Timestamp b) => a.Ticks >= b.Ticks;
-        public static bool operator ==(Timestamp a, Timestamp b) => a.Ticks == b.Ticks;
-        public static bool operator !=(Timestamp a, Timestamp b) => a.Ticks != b.Ticks;
-
-
         /// <summary>
-        /// Counter ticks for a duration. Done in this one place because mixing
-        /// counter ticks with TimeSpan.Ticks is an easy and silent mistake: they
-        /// happen to be equal on most current Windows machines, where the counter
-        /// runs at 10 MHz, and differ on anything else.
+        /// A counter reading in nanoseconds. Whole seconds and the remainder are
+        /// converted separately: multiplying the raw value by 10^9 directly
+        /// overflows a long after about 15 minutes of uptime at 10 MHz.
         /// </summary>
-        public static long ToTicks(TimeSpan duration) =>
-            (long)Math.Round(duration.TotalSeconds * TicksPerSecond);
+        public static Timestamp FromCounter(long counterValue, long counterFrequency)
+        {
+            if (counterFrequency <= 0)
+                throw new ArgumentOutOfRangeException(nameof(counterFrequency), counterFrequency, "The frequency must be positive.");
 
-        public static TimeSpan ToTimeSpan(long ticks) =>
-            TimeSpan.FromSeconds((double)ticks / TicksPerSecond);
+            long seconds = counterValue / counterFrequency;
+            long remainder = counterValue % counterFrequency;
+
+            return new Timestamp(seconds * NanosecondsPerSecond + remainder * NanosecondsPerSecond / counterFrequency);
+        }
+
+        /// <summary>Seconds since the clock's origin, for reports and logs.</summary>
+        public double Seconds => (double)Nanoseconds / NanosecondsPerSecond;
+
+        /// <summary>TimeSpan counts in 100 ns ticks; this is the one place that converts them.</summary>
+        public static long ToNanoseconds(TimeSpan duration) => duration.Ticks * NanosecondsPerTimeSpanTick;
 
 
-        public bool Equals(Timestamp other) => Ticks == other.Ticks;
+        public static Timestamp operator +(Timestamp t, TimeSpan d) => new Timestamp(t.Nanoseconds + ToNanoseconds(d));
+        public static Timestamp operator -(Timestamp t, TimeSpan d) => new Timestamp(t.Nanoseconds - ToNanoseconds(d));
+
+        /// <summary>How long from <paramref name="b"/> until <paramref name="a"/>, to the nearest 100 ns below.</summary>
+        public static TimeSpan operator -(Timestamp a, Timestamp b) =>
+            TimeSpan.FromTicks((a.Nanoseconds - b.Nanoseconds) / NanosecondsPerTimeSpanTick);
+
+        public static bool operator <(Timestamp a, Timestamp b) => a.Nanoseconds < b.Nanoseconds;
+        public static bool operator >(Timestamp a, Timestamp b) => a.Nanoseconds > b.Nanoseconds;
+        public static bool operator <=(Timestamp a, Timestamp b) => a.Nanoseconds <= b.Nanoseconds;
+        public static bool operator >=(Timestamp a, Timestamp b) => a.Nanoseconds >= b.Nanoseconds;
+        public static bool operator ==(Timestamp a, Timestamp b) => a.Nanoseconds == b.Nanoseconds;
+        public static bool operator !=(Timestamp a, Timestamp b) => a.Nanoseconds != b.Nanoseconds;
+
+
+        public bool Equals(Timestamp other) => Nanoseconds == other.Nanoseconds;
         public override bool Equals(object obj) => obj is Timestamp other && Equals(other);
-        public override int GetHashCode() => Ticks.GetHashCode();
-        public int CompareTo(Timestamp other) => Ticks.CompareTo(other.Ticks);
-        public override string ToString() => $"{(double)Ticks / TicksPerSecond:F6}s";
+        public override int GetHashCode() => Nanoseconds.GetHashCode();
+        public int CompareTo(Timestamp other) => Nanoseconds.CompareTo(other.Nanoseconds);
+        public override string ToString() => $"{Seconds:F6}s";
     }
 }

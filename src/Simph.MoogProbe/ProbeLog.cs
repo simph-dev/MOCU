@@ -50,7 +50,7 @@ namespace Simph.MoogProbe
                 return;
             }
 
-            long origin = sent[0].Sent.Ticks;
+            long origin = sent[0].Sent.Nanoseconds;
 
             WriteSent(sent, origin);
             WriteReceived(received, origin);
@@ -81,11 +81,11 @@ namespace Simph.MoogProbe
             for (int i = 0; i < sent.Count; i++)
             {
                 var r = sent[i];
-                double due = Seconds(r.Due.Ticks - origin);
-                double at = Seconds(r.Sent.Ticks - origin);
-                double late = Micros(r.Sent.Ticks - r.Due.Ticks);
-                double gap = i == 0 ? 0 : Micros(r.Sent.Ticks - previous);
-                previous = r.Sent.Ticks;
+                double due = Seconds(r.Due.Nanoseconds - origin);
+                double at = Seconds(r.Sent.Nanoseconds - origin);
+                double late = Micros(r.Sent.Nanoseconds - r.Due.Nanoseconds);
+                double gap = i == 0 ? 0 : Micros(r.Sent.Nanoseconds - previous);
+                previous = r.Sent.Nanoseconds;
 
                 writer.WriteLine(string.Join(",",
                     N(r.Slot), N(r.Sequence), r.IsDuplicate ? "1" : "0", r.Command.ToString(),
@@ -106,10 +106,10 @@ namespace Simph.MoogProbe
             for (int i = 0; i < received.Count; i++)
             {
                 var r = received[i];
-                double at = Seconds(r.Received.Ticks - origin);
-                double gap = i == 0 ? 0 : Micros(r.Received.Ticks - previous);
+                double at = Seconds(r.Received.Nanoseconds - origin);
+                double gap = i == 0 ? 0 : Micros(r.Received.Nanoseconds - previous);
                 long step = i == 0 ? 0 : (long)r.Response.MbcPacketCount - previousCount;
-                previous = r.Received.Ticks;
+                previous = r.Received.Nanoseconds;
                 previousCount = r.Response.MbcPacketCount;
 
                 writer.WriteLine(string.Join(",",
@@ -140,19 +140,19 @@ namespace Simph.MoogProbe
             // --- how well the host kept to its own grid ----------------------
             var gaps = new List<double>(sent.Count);
             for (int i = 1; i < sent.Count; i++)
-                gaps.Add(Micros(sent[i].Sent.Ticks - sent[i - 1].Sent.Ticks));
+                gaps.Add(Micros(sent[i].Sent.Nanoseconds - sent[i - 1].Sent.Nanoseconds));
 
             // The first send is always late by a millisecond or two: it carries
             // the JIT of the whole send path and the socket's first write. It is
             // in sent.csv like everything else, but averaging it in would make
             // every run look as though the loop stalls, so the lateness figures
             // below start at the second packet.
-            var lateness = sent.Skip(1).Select(r => Micros(r.Sent.Ticks - r.Due.Ticks)).ToList();
+            var lateness = sent.Skip(1).Select(r => Micros(r.Sent.Nanoseconds - r.Due.Nanoseconds)).ToList();
 
             if (lateness.Count == 0)
                 lateness.Add(0);
 
-            double span = Seconds(sent[sent.Count - 1].Sent.Ticks - sent[0].Sent.Ticks);
+            double span = Seconds(sent[sent.Count - 1].Sent.Nanoseconds - sent[0].Sent.Nanoseconds);
 
             text.AppendLine("host send loop");
             text.AppendLine($"  packets              {sent.Count} over {span:F3} s = {sent.Count / Math.Max(span, 1e-9):F1} packets/s");
@@ -252,11 +252,11 @@ namespace Simph.MoogProbe
             // nothing was lost, hence the count check above.
             if (received.Count == commands)
             {
-                var commandTimes = sent.Where(r => !r.IsDuplicate).Select(r => r.Sent.Ticks).ToList();
+                var commandTimes = sent.Where(r => !r.IsDuplicate).Select(r => r.Sent.Nanoseconds).ToList();
                 var trips = new List<double>(received.Count);
 
                 for (int i = 0; i < received.Count; i++)
-                    trips.Add(Micros(received[i].Received.Ticks - commandTimes[i]));
+                    trips.Add(Micros(received[i].Received.Nanoseconds - commandTimes[i]));
 
                 text.AppendLine();
                 text.AppendLine($"round trip (paired by order) median {Median(trips):F1} us, p99 {Percentile(trips, 0.99):F1} us, max {trips.Max():F1} us");
@@ -266,8 +266,8 @@ namespace Simph.MoogProbe
             return text.ToString();
         }
 
-        private static double Seconds(long ticks) => (double)ticks / Timestamp.TicksPerSecond;
-        private static double Micros(long ticks) => 1e6 * ticks / Timestamp.TicksPerSecond;
+        private static double Seconds(long nanoseconds) => nanoseconds / 1e9;
+        private static double Micros(long nanoseconds) => nanoseconds / 1e3;
 
         private static double Median(List<double> values) => Percentile(values, 0.5);
 

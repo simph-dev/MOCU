@@ -40,7 +40,8 @@ namespace Simph.MoogProbe
 
             Console.WriteLine();
             Console.WriteLine(options.Header);
-            Console.WriteLine($"performance counter runs at {Timestamp.TicksPerSecond} Hz");
+            var clock = new SystemClock();
+            Console.WriteLine($"performance counter runs at {clock.CounterFrequency} Hz");
             Console.WriteLine();
 
             var schedule = BuildSchedule(options, out MotionPlan? outbound);
@@ -51,7 +52,7 @@ namespace Simph.MoogProbe
             if (options.MovesThePlatform && !Consent(options))
                 return 1;
 
-            return Run(options, schedule);
+            return Run(options, schedule, clock);
         }
 
 
@@ -115,11 +116,11 @@ namespace Simph.MoogProbe
         private static Func<TimeSpan, Pose6> Evaluate(MotionPlan plan, ProbeOptions options)
         {
             if (!options.Precompensate)
-                return elapsed => plan.Evaluate(new Timestamp(Timestamp.ToTicks(elapsed)));
+                return elapsed => plan.Evaluate(Timestamp.Zero + elapsed);
 
             var motion = Compensated(plan, options);
 
-            return elapsed => motion.Command(new Timestamp(Timestamp.ToTicks(elapsed)));
+            return elapsed => motion.Command(Timestamp.Zero + elapsed);
         }
 
         private static CompensatedMotion Compensated(MotionPlan plan, ProbeOptions options) =>
@@ -234,7 +235,7 @@ namespace Simph.MoogProbe
 
         // ----------------------------------------------------------------- run
 
-        private static int Run(ProbeOptions options, List<Segment> schedule)
+        private static int Run(ProbeOptions options, List<Segment> schedule, IClock clock)
         {
             using var dropStream = new CancellationTokenSource();
             int stopRequests = 0;
@@ -270,9 +271,9 @@ namespace Simph.MoogProbe
             };
             printer.Start();
 
-            using var link = new MachineLink(options.Host, options.Mbc);
+            using var link = new MachineLink(options.Host, options.Mbc, clock);
 
-            var loop = new PacedLoop(options.Interval);
+            var loop = new PacedLoop(options.Interval, clock);
             Timestamp due = default;
             RunSequencer? sequencer = null;
 

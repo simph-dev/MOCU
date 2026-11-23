@@ -29,7 +29,7 @@ public class TrajectoryFilterModelTests
         var series = new double[count];
 
         for (int n = 0; n < count; n++)
-            series[n] = pose(new Timestamp(Timestamp.ToTicks(TimeSpan.FromMilliseconds(n - before))))[axis];
+            series[n] = pose(Timestamp.Zero + TimeSpan.FromMilliseconds(n - before))[axis];
 
         return series;
     }

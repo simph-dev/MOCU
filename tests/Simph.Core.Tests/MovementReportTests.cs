@@ -16,7 +16,7 @@ public class MovementReportTests
         var seconds = Enumerable.Range(0, 2000).Select(n => n / 1000.0).ToArray();
         var poses = Enumerable.Range(0, 2000).Select(n =>
         {
-            var pose = plan.Evaluate(new Timestamp(Timestamp.ToTicks(TimeSpan.FromMilliseconds(n))));
+            var pose = plan.Evaluate(Timestamp.Zero + TimeSpan.FromMilliseconds(n));
             return disturb == null ? pose : pose + disturb(n);
         }).ToArray();
 
