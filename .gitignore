@@ -108,3 +108,10 @@ tests/**/bin/
 # so the documentation sits next to the code that implements it, but never
 # committed: these are the vendor's documents and ours only to use.
 Documentation/Moog (vendor, not tracked)/
+
+# Working notes: design briefs, model reviews, drafts. They name people and
+# local paths and are not meant for a public repository.
+Documentation/Internal (not tracked)/
+
+# Simph.MoogProbe writes a folder per run here: measurements, not source.
+probe-logs/
