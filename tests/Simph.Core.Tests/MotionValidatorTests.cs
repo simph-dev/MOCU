@@ -195,4 +195,81 @@ public class MotionValidatorTests
         Assert.False(result.Accepted);
         Assert.True(result.Rejections.Count() >= 4, result.Describe());
     }
+
+
+    // ------------------------------------------------- what is actually sent
+
+    [Fact]
+    public void Accepts_the_compensated_stimulus_at_its_intended_duration()
+    {
+        var result = Validator().Validate(LabSetup.Compensated(LabSetup.Intended()));
+
+        Assert.True(result.Accepted, result.Describe());
+    }
+
+    /// <summary>
+    /// The live experiments shorten the command to 0.8 s. That plan passes on its
+    /// own, at 1.77 m/s^2, but its compensated command asks the filter for 2.70:
+    /// compensation belongs on the honest 1 s duration, not on top of the factor.
+    /// </summary>
+    [Fact]
+    public void Refuses_to_compensate_a_movement_whose_plan_alone_would_pass()
+    {
+        var plan = LabSetup.Commanded(headingDegrees: 0);
+
+        Assert.True(Validator().Validate(plan).Accepted);
+
+        var result = Validator().Validate(LabSetup.Compensated(plan));
+        var issue = IssueFor(result, Axis.Surge, "filter acceleration");
+
+        Assert.False(result.Accepted);
+        Assert.NotNull(issue);
+        Assert.Equal(IssueSeverity.Rejected, issue.Severity);
+    }
+
+    /// <summary>
+    /// The command overshoots the end point by about a millimetre, so a plan that
+    /// stops exactly at the travel limit sends a command past it.
+    /// </summary>
+    [Fact]
+    public void Refuses_a_command_that_overshoots_the_travel_limit()
+    {
+        double limit = MotionEnvelope.MoogMbE6Dof[Axis.Surge].MaxPosition;
+        var plan = new MotionPlan(
+            Pose6.Translation(surge: limit - LabSetup.Distance, sway: 0, heave: -0.22),
+            Pose6.Translation(surge: limit, sway: 0, heave: -0.22),
+            LabSetup.StimulusDuration, Timestamp.Zero, LabSetup.Profile());
+
+        Assert.True(Validator().Validate(plan).Accepted);
+
+        var result = Validator().Validate(LabSetup.Compensated(plan));
+        var issue = IssueFor(result, Axis.Surge, "command position");
+
+        Assert.False(result.Accepted);
+        Assert.NotNull(issue);
+    }
+
+    [Fact]
+    public void A_compensated_movement_still_gets_the_plan_checks()
+    {
+        var plan = LabSetup.Stimulus(0, TimeSpan.FromMilliseconds(300));
+
+        var result = Validator().Validate(LabSetup.Compensated(plan));
+
+        Assert.NotNull(IssueFor(result, Axis.Surge, "acceleration"));
+        Assert.NotNull(IssueFor(result, Axis.Surge, "filter acceleration"));
+    }
+
+    [Fact]
+    public void A_compensated_movement_with_coordinates_that_are_not_numbers_is_refused_once()
+    {
+        var plan = new MotionPlan(LabSetup.Neutral,
+            Pose6.Translation(surge: double.NaN, sway: 0, heave: -0.22),
+            LabSetup.StimulusDuration, Timestamp.Zero, LabSetup.Profile());
+
+        var result = Validator().Validate(LabSetup.Compensated(plan));
+
+        Assert.False(result.Accepted);
+        Assert.Single(result.Rejections);
+    }
 }

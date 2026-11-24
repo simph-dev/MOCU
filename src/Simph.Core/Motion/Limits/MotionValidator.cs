@@ -2,27 +2,27 @@ using System;
 using System.Collections.Generic;
 
 using Simph.Core.Geometry;
+using Simph.Core.Motion.Compensation;
 
 
 namespace Simph.Core.Motion.Limits
 {
     /// <summary>
-    /// Checks a plan against a machine's envelope before anything is sent.
+    /// Checks a movement against a machine's envelope before anything is sent.
     ///
-    /// <para>The point is not only to prevent a dangerous movement - the MBC has
-    /// its own limits and will not perform one - but to <b>fail loudly instead of
-    /// quietly</b>. When a commanded movement exceeds the MBC's trajectory
-    /// filter, the filter silently brakes that axis; the platform then travels a
-    /// different path from the one the experiment believes it commanded, and
+    /// <para>The MBC has limits of its own, but it never refuses a command: its
+    /// trajectory filter delivers what it can, and past its acceleration limit
+    /// that is no longer the shape that was asked for. The platform then travels
+    /// a different path from the one the experiment believes it commanded, and
     /// nothing in the data says so. For a study measuring perception against a
-    /// known stimulus, a silently altered stimulus is worse than a refused one.
-    /// </para>
+    /// known stimulus, a silently altered stimulus is worse than a refused one,
+    /// so this fails loudly instead.</para>
     ///
-    /// <para>Validation runs on the plan that is actually sent, after any
-    /// compensation for the platform's own lag has been applied. Compensating by
-    /// shortening the commanded duration raises peak acceleration as the inverse
-    /// square, so the compensated plan is always the more demanding of the two,
-    /// and checking the intended one would check the wrong number.</para>
+    /// <para><see cref="Validate(MotionPlan)"/> checks a plan as it stands.
+    /// <see cref="Validate(CompensatedMotion)"/> checks a compensated movement,
+    /// the plan and then the command actually sent, which leads the plan,
+    /// overshoots its end and makes the filter work harder than the plan alone
+    /// would.</para>
     /// </summary>
     public sealed class MotionValidator
     {
@@ -88,6 +88,65 @@ namespace Simph.Core.Motion.Limits
             }
 
             return new ValidationResult(issues);
+        }
+
+
+        /// <summary>
+        /// Checks a compensated movement in one call: the plan, then what is sent.
+        /// One call so that the command cannot go out with only the plan checked.
+        /// A movement whose plan passes can still fail here: at 0.13 m in 0.8 s the
+        /// plan needs 1.77 m/s^2 but its compensated command 2.70.
+        /// </summary>
+        public ValidationResult Validate(CompensatedMotion motion)
+        {
+            if (motion == null) throw new ArgumentNullException(nameof(motion));
+
+            var plan = motion.Plan;
+            var issues = new List<ValidationIssue>(Validate(plan).Issues);
+
+            // A plan with NaN in it has already been refused, and every number
+            // derived from it would be NaN too.
+            if (plan.From.HasNonFinite() || plan.To.HasNonFinite())
+                return new ValidationResult(issues);
+
+            var demand = motion.Measure();
+
+            foreach (var axis in Axes.All)
+            {
+                var limits = _envelope[axis];
+                string unit = Axes.Unit(axis);
+
+                Compare(issues, axis, "filter speed", demand.PeakSpeed[axis], limits.MaxSpeed, unit + "/s");
+                Compare(issues, axis, "filter acceleration", demand.PeakAcceleration[axis], limits.MaxAcceleration, unit + "/s2");
+
+                CheckCommandRange(issues, axis, demand, limits, unit);
+            }
+
+            return new ValidationResult(issues);
+        }
+
+
+        /// <summary>
+        /// The compensated command overshoots the plan's end point, so a plan
+        /// that stops exactly at a travel limit sends a command beyond it.
+        /// </summary>
+        private static void CheckCommandRange(ICollection<ValidationIssue> issues, Axis axis,
+            CompensationDemand demand, AxisLimits limits, string unit)
+        {
+            if (!limits.PositionKnown) return;
+
+            double lowest = demand.LowestCommand[axis];
+            double highest = demand.HighestCommand[axis];
+
+            if (lowest < limits.MinPosition)
+                issues.Add(new ValidationIssue(IssueSeverity.Rejected, axis, "command position",
+                    $"the command reaches {lowest:F4} {unit}, below the travel limit {limits.MinPosition:F4} {unit}",
+                    lowest, limits.MinPosition));
+
+            if (highest > limits.MaxPosition)
+                issues.Add(new ValidationIssue(IssueSeverity.Rejected, axis, "command position",
+                    $"the command reaches {highest:F4} {unit}, above the travel limit {limits.MaxPosition:F4} {unit}",
+                    highest, limits.MaxPosition));
         }
 
 

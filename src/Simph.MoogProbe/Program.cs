@@ -131,78 +131,50 @@ namespace Simph.MoogProbe
         // ------------------------------------------------------------- consent
 
         /// <summary>
-        /// Runs the movement past the envelope before anything is sent. A plan
-        /// the validator rejects never reaches the platform; warnings are printed
-        /// and do not stop the run, because the compensated stimulus has sat at
-        /// 85% of the acceleration limit for years and refusing it here would
-        /// just mean the probe cannot measure the case we care about.
+        /// Runs what will be sent past the envelope before anything is sent: the
+        /// plan, or with --precompensate the compensated command as well. A
+        /// rejection stops the run. Warnings are printed and do not, since a
+        /// warning means close to a limit, not over it.
         /// </summary>
         private static bool Approve(MotionPlan plan, ProbeOptions options)
         {
-            var result = new MotionValidator(MotionEnvelope.MoogMbE6Dof).Validate(plan);
+            var validator = new MotionValidator(MotionEnvelope.MoogMbE6Dof);
 
             Console.WriteLine(plan.ToString());
             Console.WriteLine($"peak speed        {plan.PeakSpeed}");
             Console.WriteLine($"peak acceleration {plan.PeakAcceleration}");
             Console.WriteLine();
+
+            ValidationResult result;
+
+            if (options.Precompensate)
+            {
+                var motion = Compensated(plan, options);
+                var demand = motion.Measure();
+
+                Console.WriteLine($"filter output speed {demand.PeakSpeed}");
+                Console.WriteLine($"filter output accel {demand.PeakAcceleration}");
+                Console.WriteLine($"command lowest      {demand.LowestCommand}");
+                Console.WriteLine($"command highest     {demand.HighestCommand}");
+                Console.WriteLine();
+
+                result = validator.Validate(motion);
+            }
+            else
+            {
+                result = validator.Validate(plan);
+            }
+
             Console.WriteLine(result.Describe());
             Console.WriteLine();
 
             if (!result.Accepted)
             {
-                Console.Error.WriteLine("The movement is outside the platform envelope. Nothing was sent.");
+                Console.Error.WriteLine("The movement is outside what the platform can do. Nothing was sent.");
                 return false;
             }
 
-            return !options.Precompensate || ApproveCompensation(plan, options);
-        }
-
-        /// <summary>
-        /// The compensated command is not the plan: it leads it and overshoots it,
-        /// and the filter has to work harder than the plan alone would suggest.
-        /// So what is actually sent gets checked as well.
-        /// </summary>
-        private static bool ApproveCompensation(MotionPlan plan, ProbeOptions options)
-        {
-            var demand = Compensated(plan, options).Measure();
-            var envelope = MotionEnvelope.MoogMbE6Dof;
-            bool accepted = true;
-
-            Console.WriteLine($"filter output speed {demand.PeakSpeed}");
-            Console.WriteLine($"filter output accel {demand.PeakAcceleration}");
-            Console.WriteLine($"command lowest      {demand.LowestCommand}");
-            Console.WriteLine($"command highest     {demand.HighestCommand}");
-            Console.WriteLine();
-
-            foreach (var axis in Axes.All)
-            {
-                var limits = envelope[axis];
-
-                if (demand.PeakAcceleration[axis] > limits.MaxAcceleration)
-                {
-                    Console.Error.WriteLine($"{axis}: the filter cannot deliver this, it would need " +
-                        $"{demand.PeakAcceleration[axis]:F3} against {limits.MaxAcceleration:F3}.");
-                    accepted = false;
-                }
-
-                if (demand.PeakSpeed[axis] > limits.MaxSpeed)
-                {
-                    Console.Error.WriteLine($"{axis}: speed {demand.PeakSpeed[axis]:F3} is over {limits.MaxSpeed:F3}.");
-                    accepted = false;
-                }
-
-                if (limits.PositionKnown &&
-                    (demand.LowestCommand[axis] < limits.MinPosition || demand.HighestCommand[axis] > limits.MaxPosition))
-                {
-                    Console.Error.WriteLine($"{axis}: the command leaves the travel limits.");
-                    accepted = false;
-                }
-            }
-
-            if (!accepted)
-                Console.Error.WriteLine("Nothing was sent.");
-
-            return accepted;
+            return true;
         }
 
         private static bool Consent(ProbeOptions options)
