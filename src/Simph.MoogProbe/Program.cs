@@ -16,9 +16,6 @@ namespace Simph.MoogProbe
 {
     public static class Program
     {
-        /// <summary>One frame of the MBC's filters, which is one packet at 1000 Hz.</summary>
-        private static readonly TimeSpan Frame = TimeSpan.FromMilliseconds(1);
-
         public static int Main(string[] args)
         {
             if (args.Length == 0 || args.Contains("--help") || args.Contains("-h"))
@@ -35,6 +32,17 @@ namespace Simph.MoogProbe
                 Console.Error.WriteLine(error);
                 Console.Error.WriteLine();
                 Console.Error.WriteLine(ProbeOptions.Usage);
+                return 2;
+            }
+
+            try
+            {
+                options.UseSetup(RigSetup.Load(options.SetupPath));
+            }
+            catch (Exception exception) when (exception is System.IO.IOException || exception is FormatException ||
+                                              exception is System.Text.Json.JsonException || exception is ArgumentException)
+            {
+                Console.Error.WriteLine($"Cannot read the rig setup {options.SetupPath}: {exception.Message}");
                 return 2;
             }
 
@@ -124,8 +132,7 @@ namespace Simph.MoogProbe
         }
 
         private static CompensatedMotion Compensated(MotionPlan plan, ProbeOptions options) =>
-            new CompensatedMotion(plan, MotionEnvelope.MoogMbE6Dof, Frame,
-                TimeSpan.FromMilliseconds(options.DriveLagMilliseconds));
+            new CompensatedMotion(plan, options.Model);
 
 
         // ------------------------------------------------------------- consent
@@ -138,7 +145,7 @@ namespace Simph.MoogProbe
         /// </summary>
         private static bool Approve(MotionPlan plan, ProbeOptions options)
         {
-            var validator = new MotionValidator(MotionEnvelope.MoogMbE6Dof);
+            var validator = new MotionValidator(options.Envelope);
 
             Console.WriteLine(plan.ToString());
             Console.WriteLine($"peak speed        {plan.PeakSpeed}");

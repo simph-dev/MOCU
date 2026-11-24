@@ -1,0 +1,55 @@
+// The lab's motion platform: what the machine is, how it responds, and what the
+// lab allows it to do. Edited by the developer only; not shown in the
+// researchers' settings. Units: metres and radians, per second and per second
+// squared, unless a name says otherwise.
+{
+  "name": "Moog MB-E-6DOF/12/1000",
+
+  // motionbase.xml: Host IP Address and Motion Base IP Address.
+  "host": "192.168.2.3:16386",
+  "mbc": "192.168.2.1:16384",
+
+  // Where the experiments park the platform between movements. Heave is the
+  // MBC's DOF heave: measured from the settled position, negative upwards.
+  "neutral": { "surge": 0.0, "sway": 0.0, "heave": -0.22, "roll": 0.0, "pitch": 0.0, "yaw": 0.0 },
+
+  // What the machine does to a command. Has to match the MBC's configuration:
+  // if a technician changes ACC_LIM, change it here too.
+  "model": {
+    // motionbase.xml, DOF Trajectory Filter: ACC_LIM per axis.
+    "filterAcceleration": { "surge": 2.0, "sway": 2.0, "heave": 2.0, "roll": 1.75, "pitch": 1.75, "yaw": 1.75 },
+
+    // Measured on 2026-11-02 from the recorder: a first-order lag, the same on X and Y.
+    "driveLagMilliseconds": 96,
+
+    // "legs": the lag acts on each leg's length (measured 2026-11-24: compensating
+    // per axis left the platform rising about 0.5 mm at peak speed).
+    // "axes": the older per-axis form.
+    "driveLagActsOn": "legs",
+
+    // geometry.xml: Base and Platform Radial and Transverse Offsets; the joint
+    // planes are 0.47752 m apart with the platform settled. Reproduces the
+    // configured leg lengths (0.71882 settled, 0.88114 at neutral) to 0.2 mm.
+    "geometry": {
+      "baseRadial": 0.7874,
+      "baseTransverse": 0.1016,
+      "platformRadial": 0.5715,
+      "platformTransverse": 0.1016,
+      "settledJointSeparation": 0.47752
+    }
+  },
+
+  // What the lab allows. A movement outside these is refused before anything is
+  // sent. Positions and speeds from the data sheet; accelerations set equal to
+  // ACC_LIM, since nothing past it can be delivered as asked. Heave position is
+  // left open (null): the data sheet's +/-0.178 m and the MBC's heave are
+  // measured from different origins, and a guessed bound is worse than none.
+  "safetyLimits": {
+    "surge": { "min": -0.241, "max": 0.259, "speed": 0.5, "acceleration": 2.0 },
+    "sway":  { "min": -0.259, "max": 0.259, "speed": 0.5, "acceleration": 2.0 },
+    "heave": { "min": null,   "max": null,  "speed": 0.3, "acceleration": 2.0 },
+    "roll":  { "minDegrees": -21, "maxDegrees": 21, "speedDegrees": 30, "acceleration": 1.75 },
+    "pitch": { "minDegrees": -22, "maxDegrees": 22, "speedDegrees": 30, "acceleration": 1.75 },
+    "yaw":   { "minDegrees": -22, "maxDegrees": 22, "speedDegrees": 40, "acceleration": 1.75 }
+  }
+}

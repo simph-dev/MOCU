@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Net;
 
 using Simph.Core.Geometry;
+using Simph.Core.Motion.Limits;
+using Simph.Core.Platform;
 
 using Simph.MoogProbe.Protocol;
 
@@ -32,11 +34,19 @@ namespace Simph.MoogProbe
         private const double MinNeutralHeave = -0.30;
         private const double MaxDriveLagMilliseconds = 150.0;
 
-        // Addresses from the MBC configuration (motionbase.xml: Host IP Address
-        // 192.168.2.3, Motion Base IP Address 192.168.2.1) and matching
-        // MoogHandler.MachineSettings.
-        public IPEndPoint Host { get; private set; } = new IPEndPoint(IPAddress.Parse("192.168.2.3"), 16386);
-        public IPEndPoint Mbc { get; private set; } = new IPEndPoint(IPAddress.Parse("192.168.2.1"), 16384);
+        public string SetupPath { get; private set; } = RigSetup.DefaultPath;
+
+        // From the rig setup unless given on the command line; see UseSetup.
+        public IPEndPoint Host { get; private set; } = null!;
+        public IPEndPoint Mbc { get; private set; } = null!;
+        public Pose6 Neutral { get; private set; }
+        public PlatformModel Model { get; private set; } = null!;
+        public MotionEnvelope Envelope { get; private set; } = null!;
+
+        private IPEndPoint? _hostGiven, _mbcGiven;
+        private double? _neutralHeaveGiven;
+        private double? _driveLagGivenMilliseconds;
+        private string? _lagActsOnGiven;
 
         public Phase Phase { get; private set; } = Phase.Listen;
 
@@ -86,26 +96,24 @@ namespace Simph.MoogProbe
         public double Sigmas { get; private set; } = 3.0;
 
         /// <summary>
-        /// The duration actually commanded. The experiments send the intended 1 s
-        /// multiplied by MoogMovementDurationCorrectionFactor of 0.8, because the
-        /// platform takes longer to travel than it is told to.
+        /// The duration actually commanded. The default 0.8 s is what the live
+        /// experiments send (their intended 1 s times a correction factor of 0.8).
+        /// With --precompensate use the intended 1.0 s: compensated, 0.8 s asks
+        /// the filter for more than it can deliver and is refused.
         /// </summary>
         public double CommandedDuration { get; private set; } = 0.8;
 
-        public Pose6 Neutral { get; private set; } = Pose6.Translation(surge: 0, sway: 0, heave: -0.22);
-
         /// <summary>
-        /// Send the movement with the trajectory filter inverted, so that the
-        /// filter's output follows the plan and the path stays straight.
+        /// Send the movement with the platform's response compensated as the rig
+        /// setup describes it: the trajectory filter inverted and the drives led,
+        /// so that the platform itself follows the plan.
         /// </summary>
         public bool Precompensate { get; private set; }
 
-        /// <summary>
-        /// With <see cref="Precompensate"/>, also lead the drives by this time
-        /// constant, so that the platform itself follows the plan. Measured at
-        /// 96 ms. Zero leaves the drive lag in place.
-        /// </summary>
-        public double DriveLagMilliseconds { get; private set; }
+        /// <summary>The drive lag the compensation leads by; zero compensates the filter only.</summary>
+        public double DriveLagMilliseconds => Model.DriveLag.TotalMilliseconds;
+
+        public string DriveLagActsOn => Model.LegGeometry != null ? "legs" : "axes";
 
         /// <summary>Required before anything that moves the platform.</summary>
         public bool Armed { get; private set; }
@@ -140,14 +148,39 @@ namespace Simph.MoogProbe
             (Phase == Phase.Move ? "-" + CommandedDuration.ToString("F2", CultureInfo.InvariantCulture) + "s" : "") +
             (Duplicate ? "-duplicated" : "") +
             (Precompensate ? "-precomp" : "") +
-            (DriveLagMilliseconds > 0 ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) : "");
+            (Precompensate && DriveLagMilliseconds > 0
+                ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + DriveLagActsOn
+                : "");
 
         public string Header =>
             $"phase {Phase}, sending {Rate} packets/s, declaring {StatusResponseWord.Describe(StatusWord)}, " +
             $"{CopiesPerCommand} cop{(CopiesPerCommand == 1 ? "y" : "ies")} per command" +
-            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F0} ms compensated" : "") +
+            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F0} ms compensated on the {DriveLagActsOn}" : "") +
             Environment.NewLine +
-            $"host {Host}, mbc {Mbc}";
+            $"host {Host}, mbc {Mbc}, setup {SetupPath}";
+
+        /// <summary>
+        /// Takes everything not given on the command line from the rig setup. Has
+        /// to run before the schedule is built: the neutral pose comes from here.
+        /// </summary>
+        public void UseSetup(RigSetup setup)
+        {
+            Host = _hostGiven ?? setup.Host;
+            Mbc = _mbcGiven ?? setup.Mbc;
+            Neutral = _neutralHeaveGiven.HasValue ? Pose6.Translation(0, 0, _neutralHeaveGiven.Value) : setup.Neutral;
+            Envelope = setup.Envelope;
+
+            var model = setup.Model;
+            var lag = _driveLagGivenMilliseconds.HasValue ? TimeSpan.FromMilliseconds(_driveLagGivenMilliseconds.Value) : model.DriveLag;
+            var geometry = _lagActsOnGiven switch
+            {
+                "axes" => null,
+                "legs" => model.LegGeometry ?? HexapodGeometry.MoogMbE6Dof,
+                _ => model.LegGeometry
+            };
+
+            Model = new PlatformModel(model.FilterAcceleration, lag, geometry, model.Frame);
+        }
 
 
         public static bool TryParse(string[] args, out ProbeOptions options, out string? error)
@@ -186,16 +219,18 @@ namespace Simph.MoogProbe
                         case "--settle": options.SettleSeconds = Number(value); break;
                         case "--dither": options.DitherMetres = Number(value) / 1000.0; break;
                         case "--dither-hz": options.DitherHz = Number(value); break;
-                        case "--drive-lag": options.DriveLagMilliseconds = Number(value); break;
+                        case "--drive-lag": options._driveLagGivenMilliseconds = Number(value); break;
+                        case "--lag-in": options._lagActsOnGiven = ParseLagActsOn(value); break;
+                        case "--setup": options.SetupPath = value; break;
                         case "--dwell": options.DwellSeconds = Number(value); break;
                         case "--repeats": options.Repeats = int.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--distance": options.Distance = Number(value); break;
                         case "--heading": options.HeadingDegrees = Number(value); break;
                         case "--sigmas": options.Sigmas = Number(value); break;
                         case "--duration": options.CommandedDuration = Number(value); break;
-                        case "--heave": options.Neutral = Pose6.Translation(0, 0, Number(value)); break;
-                        case "--host": options.Host = ParseEndPoint(value, 16386); break;
-                        case "--mbc": options.Mbc = ParseEndPoint(value, 16384); break;
+                        case "--heave": options._neutralHeaveGiven = Number(value); break;
+                        case "--host": options._hostGiven = ParseEndPoint(value, 16386); break;
+                        case "--mbc": options._mbcGiven = ParseEndPoint(value, 16384); break;
                         case "--logs": options.LogRoot = value; break;
                         default:
                             error = $"Unknown option {key}.";
@@ -237,7 +272,7 @@ namespace Simph.MoogProbe
                 return false;
             }
 
-            if (options.Neutral.Heave < MinNeutralHeave || options.Neutral.Heave > 0)
+            if (options._neutralHeaveGiven is double heave && (heave < MinNeutralHeave || heave > 0))
             {
                 error = $"--heave must be between {MinNeutralHeave:F2} and 0.";
                 return false;
@@ -251,20 +286,27 @@ namespace Simph.MoogProbe
                 return false;
             }
 
-            if (options.DriveLagMilliseconds < 0 || options.DriveLagMilliseconds > MaxDriveLagMilliseconds)
+            if (options._driveLagGivenMilliseconds is double lag && (lag < 0 || lag > MaxDriveLagMilliseconds))
             {
                 error = $"--drive-lag must be between 0 and {MaxDriveLagMilliseconds:F0} ms.";
                 return false;
             }
 
-            if (options.DriveLagMilliseconds > 0 && !options.Precompensate)
+            if ((options._driveLagGivenMilliseconds.HasValue || options._lagActsOnGiven != null) && !options.Precompensate)
             {
-                error = "--drive-lag only means something with --precompensate.";
+                error = "--drive-lag and --lag-in only mean something with --precompensate.";
                 return false;
             }
 
             return true;
         }
+
+        private static string ParseLagActsOn(string value) => value.ToLowerInvariant() switch
+        {
+            "legs" => "legs",
+            "axes" => "axes",
+            _ => throw new FormatException("expected legs or axes")
+        };
 
         private static double Number(string value) =>
             double.Parse(value, CultureInfo.InvariantCulture);
@@ -277,7 +319,7 @@ namespace Simph.MoogProbe
             _ => throw new FormatException("expected listen, hold or move")
         };
 
-        private static IPEndPoint ParseEndPoint(string value, int defaultPort)
+        internal static IPEndPoint ParseEndPoint(string value, int defaultPort)
         {
             int colon = value.LastIndexOf(':');
 
@@ -313,14 +355,18 @@ namespace Simph.MoogProbe
   --heading DEG              heading off straight ahead (default 16)
   --duration S               commanded duration (default 0.8)
   --sigmas N                 Gaussian CDF width (default 3)
-  --precompensate            invert the MBC's trajectory filter, so that the
-                             path stays straight
-  --drive-lag MS             with --precompensate, also lead the drives by this
-                             time constant (measured: 96), so that the platform
-                             itself follows the plan
-  --heave M                  neutral heave (default -0.22)
-  --host IP[:PORT]           default 192.168.2.3:16386
-  --mbc IP[:PORT]            default 192.168.2.1:16384
+  --precompensate            compensate the platform's response as the rig setup
+                             describes it (filter inverted, drives led), so that
+                             the platform itself follows the plan
+  --drive-lag MS             with --precompensate, override the setup's drive
+                             lag; 0 compensates the filter only
+  --lag-in legs|axes         with --precompensate, override where the drive lag
+                             acts (setup: legs)
+  --setup FILE               rig setup (default rig-setup.json next to the exe,
+                             copied from config/rig-setup.json)
+  --heave M                  neutral heave (default from the setup, -0.22)
+  --host IP[:PORT]           default from the setup, 192.168.2.3:16386
+  --mbc IP[:PORT]            default from the setup, 192.168.2.1:16384
   --logs DIR                 where to write the run folder (default probe-logs)
   --arm                      permit a phase that moves the platform
   --yes                      skip the typed confirmation

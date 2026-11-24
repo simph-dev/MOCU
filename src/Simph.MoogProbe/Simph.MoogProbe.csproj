@@ -40,4 +40,9 @@
     <ProjectReference Include="..\Simph.Core\Simph.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The rig setup sits next to the exe; edit the copy in config/, not this one. -->
+    <None Include="..\..\config\rig-setup.json" Link="rig-setup.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

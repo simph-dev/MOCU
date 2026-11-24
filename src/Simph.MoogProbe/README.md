@@ -38,6 +38,11 @@ build/Simph.MoogProbe/bin/Debug/net8.0/win-x64/Simph.MoogProbe.exe
 
 Run it with no arguments for the full option list.
 
+The platform itself - the MBC's address, how the machine responds to a command,
+the leg geometry and the lab's safety limits - comes from `config/rig-setup.json`,
+which the build copies next to the executable. Edit the one in `config/`; the
+command-line options only override it for a single run.
+
 ## Order to run things
 
 ### 1. Loopback, no machine
@@ -104,20 +109,28 @@ dotnet run --project src/Simph.MoogProbe -- --phase move --duration 0.8 --repeat
 dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --repeats 3 --arm
 ```
 
-With the trajectory filter inverted, which should take the bend out, and with the
-drives led as well, which should put the specified profile on the platform:
+Compensated as the rig setup describes the platform: the trajectory filter
+inverted and the drives led on each leg, which should put the specified profile
+on the platform with the path straight and level. Then the same with the drive
+lag led per axis, the form measured on 2026-11-24 (straight, but rising about
+0.5 mm at peak speed), and with the filter alone:
 
 ```bash
 dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --repeats 3 --arm
 ```
 
 ```bash
-dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --drive-lag 96 --repeats 3 --arm
+dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --lag-in axes --repeats 3 --arm
+```
+
+```bash
+dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --drive-lag 0 --repeats 3 --arm
 ```
 
 A compensated command is checked as well as the plan: what it asks of the filter
 and how far it overshoots are printed before anything is sent, and it is refused
-if the filter could not deliver it.
+if the filter could not deliver it. The "bend" in the movement table is the
+largest distance from the straight line in all three directions, heave included.
 
 The difference between a clean stream and the daemon's has one untested cause.
 These two separate the declared rate from the send rate:
