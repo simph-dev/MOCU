@@ -80,11 +80,9 @@ namespace Simph.MoogProbe
         private volatile int _latestState = -1;
         private volatile int _responses;
 
-        // Counted separately from _responses on purpose. A datagram that arrives
-        // and fails to parse used to be dropped in silence, which made "nothing
-        // came back" and "something came back that we did not understand" look
-        // identical in the summary - and sent an hour chasing a dead link that
-        // might not have been dead.
+        // Counted separately from _responses: otherwise "nothing came back" and
+        // "something came back that we did not understand" look the same in the
+        // summary, and they need different fixes.
         private volatile int _datagrams;
         private byte[]? _firstUnparsed;
         private string? _firstUnparsedFrom;

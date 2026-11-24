@@ -12,14 +12,10 @@ namespace Simph.Core.Motion
     /// same plan can be sent to the daemon, handed to the virtual camera and
     /// replayed in a test, and all three will agree exactly.
     ///
-    /// <para>This replaces MoogModule's TrajectoryManager, which precomputed an
-    /// array of positions and walked it with an index. The index had to be
-    /// reconciled against the clock by one of several DelayCompensationStrategy
-    /// values, and the whole family of problems that came with it - an index that
-    /// could run backwards, a queue entry that never finished, a sample rate that
-    /// had to match the loop rate by convention - exists only because the
-    /// movement was a sequence rather than a function. Evaluated analytically at
-    /// the current instant, none of it arises.</para>
+    /// <para>A function of time rather than an array of positions: evaluated at
+    /// the current instant there is no index to keep in step with the clock, so
+    /// it cannot run backwards, stall, or depend on the rate of the loop that
+    /// asks.</para>
     /// </summary>
     public sealed class MotionPlan
     {

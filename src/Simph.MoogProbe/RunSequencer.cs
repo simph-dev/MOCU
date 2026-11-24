@@ -59,8 +59,7 @@ namespace Simph.MoogProbe
     /// The stream never pauses: the MBC disengages by itself after
     /// HostCommTimeoutDelay packets of silence, so every stage keeps sending, and
     /// a stop request walks the machine down through Disengage rather than
-    /// ending the loop. Ending the loop on a stop was the bug this class replaced:
-    /// the platform was left to time out on its own.
+    /// ending the loop, which would leave the platform to time out on its own.
     /// </summary>
     public sealed class RunSequencer
     {

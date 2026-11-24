@@ -9,26 +9,20 @@ namespace Simph.Core.Motion
     /// stops gently with its highest speed in the middle.
     ///
     /// <para><b>Sigmas</b> is how many standard deviations fit in half the
-    /// duration. It is the only shape parameter, and it decides how much of the
-    /// bell is kept: at 3 the movement begins at 0.1% of peak velocity, which is
-    /// what the lab's published heading experiments used.</para>
+    /// duration. It is the only shape parameter and decides how much of the bell
+    /// is kept; the lab's published heading experiments used 3.</para>
     ///
-    /// <para><b>Renormalisation.</b> The raw CDF does not reach 0 and 1 at the
-    /// ends - at 3 sigmas it spans 0.00135 to 0.99865 - so the curve is rescaled
-    /// to (C(tau) - C(0)) / (C(1) - C(0)). The previous implementation instead
-    /// returned the raw CDF and special-cased the endpoints to 0 and 1, which
-    /// left a step of 0.00135 of the whole displacement between the first sample
-    /// and the second. Over 0.13 m that is 0.18 mm inside one millisecond, an
-    /// implied 0.18 m/s from standstill: far above anything the platform will
-    /// follow, so the MBC's trajectory filter clips it. Rescaling removes the
-    /// step without altering the shape, so the stimulus is unchanged.</para>
+    /// <para><b>Ends.</b> The raw CDF does not reach 0 and 1 (at 3 sigmas it spans
+    /// 0.00135 to 0.99865), so it is rescaled to (C(tau) - C(0)) / (C(1) - C(0)).
+    /// Forcing the ends to 0 and 1 instead would put 0.135% of the displacement,
+    /// 0.18 mm over 0.13 m, into the first millisecond, a jump the platform cannot
+    /// follow. Rescaling leaves no jump and keeps the shape.</para>
     ///
-    /// <para>Even rescaled, the first sample is not free: velocity at tau = 0 is
-    /// exp(-sigmas^2 / 2) of peak, reached from rest within one tick. At 3 sigmas
-    /// that is 1.1% of peak, and the implied acceleration still exceeds the
-    /// platform's configured limit. Raising Sigmas shrinks it quickly, but it
-    /// also raises peak velocity and acceleration (as sigmas and sigmas^2), which
-    /// changes the stimulus - a question for Adam, not a free fix.</para>
+    /// <para>The first sample is still not at rest: velocity at tau = 0 is
+    /// exp(-sigmas^2 / 2) of peak, 1.1% at 3 sigmas, reached within one tick.
+    /// Raising Sigmas shrinks it but raises peak velocity and acceleration (as
+    /// sigmas and sigmas^2), which changes the stimulus - a question for Adam,
+    /// not a free fix.</para>
     /// </summary>
     public sealed class GaussianCdfProfile : IMotionProfile
     {
