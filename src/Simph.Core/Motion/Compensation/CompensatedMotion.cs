@@ -1,7 +1,7 @@
 using System;
 
 using Simph.Core.Geometry;
-using Simph.Core.Motion.Limits;
+using Simph.Core.Platform;
 using Simph.Core.Time;
 
 namespace Simph.Core.Motion.Compensation
@@ -11,70 +11,95 @@ namespace Simph.Core.Motion.Compensation
     /// so that the platform, rather than the command, follows the plan.
     ///
     /// Two stages are inverted, last one first. After the filter sit the drives,
-    /// a first-order lag of about 96 ms on every axis, so the filter's output has
-    /// to run ahead of the plan by that lag. The filter then needs its input ahead
-    /// of that by the lead its law demands, see <see cref="TrajectoryFilterModel"/>.
+    /// a first-order lag of about 96 ms on each leg, so the filter's output has to
+    /// run ahead of the plan by that lag, worked out on the leg lengths. The filter
+    /// then needs its input ahead of that by the lead its law demands on each
+    /// axis, see <see cref="TrajectoryFilterModel"/>.
     ///
-    /// Both are per axis and both vanish at rest, so the command starts and ends
-    /// where the plan does. In between it leads by up to a few centimetres, and
-    /// inverting the lag makes it overshoot the end point by about a millimetre.
+    /// Both leads vanish at rest, so the command starts and ends where the plan
+    /// does. In between it leads by up to a few centimetres, and inverting the lag
+    /// makes it overshoot the end point by about a millimetre.
     /// </summary>
     public sealed class CompensatedMotion
     {
         private const int EdgeFrames = 5;
 
         private readonly MotionPlan _plan;
+        private readonly PlatformModel _model;
         private readonly TrajectoryFilterModel[] _filters = new TrajectoryFilterModel[6];
         private readonly TimeSpan _frame;
         private readonly TimeSpan _halfFrame;
         private readonly double _dt;
         private readonly double _lagLeadSeconds;
 
-        /// <param name="plan">What the platform should do.</param>
-        /// <param name="envelope">Supplies the filter's acceleration on each axis.</param>
-        /// <param name="frame">One MBC frame, 1 ms.</param>
-        /// <param name="driveLag">
-        /// Time constant of the drives. Zero leaves them alone: the filter's output
-        /// then follows the plan and the platform trails it by that lag.
-        /// </param>
-        public CompensatedMotion(MotionPlan plan, MotionEnvelope envelope, TimeSpan frame, TimeSpan driveLag)
+        public CompensatedMotion(MotionPlan plan, PlatformModel model)
         {
             _plan = plan ?? throw new ArgumentNullException(nameof(plan));
-            if (envelope == null) throw new ArgumentNullException(nameof(envelope));
+            _model = model ?? throw new ArgumentNullException(nameof(model));
 
-            if (driveLag < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(driveLag), driveLag, "Cannot be negative.");
+            _frame = model.Frame;
+            _halfFrame = TimeSpan.FromTicks(_frame.Ticks / 2);
+            _dt = _frame.TotalSeconds;
 
             foreach (var axis in Axes.All)
-                _filters[(int)axis] = new TrajectoryFilterModel(envelope[axis].MaxAcceleration, frame);
-
-            _frame = frame;
-            _halfFrame = TimeSpan.FromTicks(frame.Ticks / 2);
-            _dt = frame.TotalSeconds;
+                _filters[(int)axis] = new TrajectoryFilterModel(model.FilterAcceleration[axis], _frame);
 
             // A first-order lag sampled at dt moves a fraction alpha of the way to
             // its input each frame. To land on x[n+1] from x[n] its input must be
             // x[n] + (x[n+1] - x[n]) / alpha, which is the plan plus a lead of
-            // dt (1 - alpha) / alpha times its speed over that frame.
+            // dt (1 - alpha) / alpha times its speed over that frame: 95.5 ms at 96.
+            var driveLag = model.DriveLag;
             double alpha = driveLag > TimeSpan.Zero ? 1.0 - Math.Exp(-_dt / driveLag.TotalSeconds) : 1.0;
             _lagLeadSeconds = _dt * (1.0 - alpha) / alpha;
         }
 
         public MotionPlan Plan => _plan;
 
-        public TimeSpan Frame => _frame;
+        public PlatformModel Model => _model;
 
-        // Speed and acceleration come from the plan's analytic derivatives. Taking
-        // them by differencing positions would multiply the 1e-7 error of the erf
-        // approximation by the lag gain and by 1 / dt, and put that on the wire.
+        public TimeSpan Frame => _frame;
 
         /// <summary>What the filter's output should be at this instant.</summary>
         public Pose6 FilterOutput(Timestamp now) =>
-            _plan.Evaluate(now) + _plan.Velocity(now + _halfFrame) * _lagLeadSeconds;
+            _model.LegGeometry == null || _lagLeadSeconds == 0
+                ? _plan.Evaluate(now) + _plan.Velocity(now + _halfFrame) * _lagLeadSeconds
+                : LegLeadOutput(now);
+
+        /// <summary>
+        /// The same lead, on the leg lengths: each leg is put ahead of where the
+        /// plan needs it by its own speed times the lead, and the pose those
+        /// lengths make is what the filter has to deliver. Leg speed is taken over
+        /// the frame by differencing; the per-leg tests send the result through a
+        /// simulated filter and legs and bound what that costs.
+        /// </summary>
+        private Pose6 LegLeadOutput(Timestamp now)
+        {
+            var geometry = _model.LegGeometry;
+            var here = _plan.Evaluate(now);
+            var next = _plan.Evaluate(now + _frame);
+
+            double[] legsHere = geometry.LegLengths(here);
+            double[] legsNext = geometry.LegLengths(next);
+            double gain = _lagLeadSeconds / _dt;
+
+            var led = new double[6];
+            for (int i = 0; i < 6; i++)
+                led[i] = legsHere[i] + (legsNext[i] - legsHere[i]) * gain;
+
+            return geometry.PoseFromLegLengths(led, guess: here + (next - here) * gain);
+        }
 
         /// <summary>The speed of that output over the frame starting at this instant.</summary>
-        private Pose6 FilterOutputVelocity(Timestamp now) =>
-            _plan.Velocity(now + _halfFrame) + _plan.Acceleration(now + _frame) * _lagLeadSeconds;
+        private Pose6 FilterOutputVelocity(Timestamp now)
+        {
+            // Per axis, from the plan's analytic derivatives: differencing would
+            // multiply the 1e-7 error of the erf approximation by the lag gain and
+            // by 1 / dt. Per leg there is no analytic form, so it is differenced.
+            if (_model.LegGeometry == null || _lagLeadSeconds == 0)
+                return _plan.Velocity(now + _halfFrame) + _plan.Acceleration(now + _frame) * _lagLeadSeconds;
+
+            return (FilterOutput(now + _frame) - FilterOutput(now)) / _dt;
+        }
 
         /// <summary>What to send at this instant.</summary>
         public Pose6 Command(Timestamp now)

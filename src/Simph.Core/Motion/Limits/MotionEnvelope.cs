@@ -31,17 +31,14 @@ namespace Simph.Core.Motion.Limits
         private const double Unknown = double.PositiveInfinity;
 
         /// <summary>
-        /// The lab's Moog MB-E-6DOF/12/1000.
+        /// What the lab allows the Moog MB-E-6DOF/12/1000 to do. A choice of the
+        /// lab's, unlike Platform.PlatformModel, which describes what the machine
+        /// does and has to match its configuration.
         ///
-        /// <para><b>Acceleration</b> comes from the MBC's own configuration
-        /// (Configuration Files/motionbase.xml, the DOF Trajectory Filter):
-        /// ACC_LIM_X / Y / Z = 2.0 m/s^2, ACC_LIM_ROLL / PITCH / YAW = 1.75
-        /// rad/s^2. These are factory defaults. The machine's data sheet allows
-        /// far more - 0.6 G on surge and sway, about 5.9 m/s^2 - so the 2.0 is a
-        /// configured value rather than a mechanical one. The filter applies it
-        /// per axis, tracking its input at the speed from which it could still
-        /// stop in time. That lag grows with speed, so the faster axis falls
-        /// further behind, and that is what bends diagonal movements.</para>
+        /// <para><b>Acceleration</b> is set equal to the MBC's configured ACC_LIM
+        /// (motionbase.xml: 2.0 m/s^2 on X, Y, Z, 1.75 rad/s^2 on the rotations),
+        /// the data sheet allowing far more (0.6 G, about 5.9 m/s^2, on surge and
+        /// sway): nothing past it could be delivered as asked anyway.</para>
         ///
         /// <para><b>Speed</b> comes from the data sheet (see the header of
         /// MoogModule.DofParameters), which is stricter than the MBC's

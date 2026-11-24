@@ -117,7 +117,11 @@ namespace Simph.Core.Motion.Limits
                 string unit = Axes.Unit(axis);
 
                 Compare(issues, axis, "filter speed", demand.PeakSpeed[axis], limits.MaxSpeed, unit + "/s");
-                Compare(issues, axis, "filter acceleration", demand.PeakAcceleration[axis], limits.MaxAcceleration, unit + "/s2");
+
+                // Against the filter's own ACC_LIM, not the lab's limit: above it
+                // the filter cannot follow and the compensation stops being exact.
+                Compare(issues, axis, "filter acceleration", demand.PeakAcceleration[axis],
+                    motion.Model.FilterAcceleration[axis], unit + "/s2");
 
                 CheckCommandRange(issues, axis, demand, limits, unit);
             }

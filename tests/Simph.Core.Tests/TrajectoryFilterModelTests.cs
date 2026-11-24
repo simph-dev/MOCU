@@ -2,6 +2,7 @@ using Simph.Core.Geometry;
 using Simph.Core.Motion;
 using Simph.Core.Motion.Compensation;
 using Simph.Core.Motion.Limits;
+using Simph.Core.Platform;
 using Simph.Core.Time;
 
 namespace Simph.Core.Tests;
@@ -154,7 +155,8 @@ public class TrajectoryFilterModelTests
     // --------------------------------------------------------- the compensation
 
     private static CompensatedMotion Compensated(MotionPlan plan, double driveLagSeconds) =>
-        new CompensatedMotion(plan, MotionEnvelope.MoogMbE6Dof, Frame, TimeSpan.FromSeconds(driveLagSeconds));
+        new CompensatedMotion(plan, new PlatformModel(PlatformModel.MoogMbE6Dof.FilterAcceleration,
+            TimeSpan.FromSeconds(driveLagSeconds), legGeometry: null, Frame));
 
     /// <summary>
     /// Sent through the same filter, the compensated command comes out as the plan

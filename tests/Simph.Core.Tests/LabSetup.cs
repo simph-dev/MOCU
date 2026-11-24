@@ -3,7 +3,7 @@ using System;
 using Simph.Core.Geometry;
 using Simph.Core.Motion;
 using Simph.Core.Motion.Compensation;
-using Simph.Core.Motion.Limits;
+using Simph.Core.Platform;
 using Simph.Core.Time;
 
 namespace Simph.Core.Tests;
@@ -70,13 +70,7 @@ public static class LabSetup
     public static MotionPlan Commanded(double headingDegrees = WidestHeadingDegrees) =>
         Stimulus(headingDegrees, StimulusDuration * CorrectionFactor);
 
-    /// <summary>
-    /// The drives' first-order lag after the MBC's filter, measured on the platform
-    /// on 2026-11-02: 96 ms, the same on X and Y.
-    /// </summary>
-    public static readonly TimeSpan DriveLag = TimeSpan.FromMilliseconds(96);
-
     /// <summary>The plan with the filter and the drives compensated, as the new system sends it.</summary>
     public static CompensatedMotion Compensated(MotionPlan plan) =>
-        new CompensatedMotion(plan, MotionEnvelope.MoogMbE6Dof, CommandInterval, DriveLag);
+        new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
 }
