@@ -45,14 +45,22 @@ namespace Simph.MoogProbe
         public bool HasFeedback { get; }
         public int Length { get; }
 
+        /// <summary>
+        /// The reply as it arrived. Kept whole because what follows the fixed
+        /// words depends on the feedback requested, and only the DOF block's
+        /// layout has been confirmed on this machine.
+        /// </summary>
+        public byte[] Bytes { get; }
+
         public ReceivedRecord(Timestamp received, StatusResponse response,
-            Pose6 feedback, bool hasFeedback, int length)
+            Pose6 feedback, bool hasFeedback, int length, byte[] bytes)
         {
             Received = received;
             Response = response;
             Feedback = feedback;
             HasFeedback = hasFeedback;
             Length = length;
+            Bytes = bytes;
         }
     }
 
@@ -212,7 +220,8 @@ namespace Simph.MoogProbe
                     _latestState = (int)response.State;
                     _responses++;
 
-                    _received.Enqueue(new ReceivedRecord(at, response, feedback, hasFeedback, length));
+                    _received.Enqueue(new ReceivedRecord(at, response, feedback, hasFeedback, length,
+                        buffer.AsSpan(0, length).ToArray()));
                 }
                 catch (SocketException)
                 {

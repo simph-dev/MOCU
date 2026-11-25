@@ -151,18 +151,72 @@ namespace Simph.MoogProbe.Protocol
         {
             pose = default;
 
-            if (source.Length < 64)
+            if (!TryReadBlock(source, FeedbackBlock.Dof, out var v))
                 return false;
 
-            pose = new Pose6(
-                roll:  BinaryPrimitives.ReadSingleBigEndian(source.Slice(40, 4)),
-                pitch: BinaryPrimitives.ReadSingleBigEndian(source.Slice(44, 4)),
-                yaw:   BinaryPrimitives.ReadSingleBigEndian(source.Slice(48, 4)),
-                surge: BinaryPrimitives.ReadSingleBigEndian(source.Slice(52, 4)),
-                sway:  BinaryPrimitives.ReadSingleBigEndian(source.Slice(56, 4)),
-                heave: BinaryPrimitives.ReadSingleBigEndian(source.Slice(60, 4)));
-
+            pose = new Pose6(roll: v[0], pitch: v[1], yaw: v[2], surge: v[3], sway: v[4], heave: v[5]);
             return true;
         }
+
+        /// <summary>
+        /// One feedback block's values, when the reply carries it.
+        ///
+        /// <para>Measured on 2026-11-25 with each request bit in turn: after the
+        /// fixed words the blocks form a chain, each an option id followed by its
+        /// data, ended by an id of 0. The blocks come in id order whatever order
+        /// the bits are in. Leg lengths are metres from the fully retracted
+        /// actuator (CDS7330 4.1), so the settled platform reads about zero.
+        /// Actuator data is a count word that reads 0, then ten floats per
+        /// actuator, A to F; which quantity each float is has not been
+        /// identified yet. The accelerometer block reads zero on this
+        /// machine.</para>
+        /// </summary>
+        public static bool TryReadBlock(ReadOnlySpan<byte> source, FeedbackBlock block, out float[] values)
+        {
+            values = Array.Empty<float>();
+            int offset = 36;
+
+            while (offset + 4 <= source.Length)
+            {
+                var id = (FeedbackBlock)BinaryPrimitives.ReadUInt32BigEndian(source.Slice(offset, 4));
+
+                int leadingWords, floats;
+                switch (id)
+                {
+                    case FeedbackBlock.Dof:
+                    case FeedbackBlock.LegLengths: leadingWords = 0; floats = 6; break;
+                    case FeedbackBlock.ActuatorData: leadingWords = 1; floats = 60; break;
+                    case FeedbackBlock.Accelerometer: leadingWords = 0; floats = 3; break;
+                    default: return false;   // 0 ends the chain; anything else is unknown
+                }
+
+                int start = offset + 4 + 4 * leadingWords;
+                int end = start + 4 * floats;
+
+                if (end > source.Length)
+                    return false;
+
+                if (id == block)
+                {
+                    values = new float[floats];
+                    for (int i = 0; i < floats; i++)
+                        values[i] = BinaryPrimitives.ReadSingleBigEndian(source.Slice(start + 4 * i, 4));
+                    return true;
+                }
+
+                offset = end;
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>Option ids of the feedback blocks in a Status Response, CDS7330 note 4.4-1.</summary>
+    public enum FeedbackBlock : uint
+    {
+        Dof = 1,
+        LegLengths = 2,
+        ActuatorData = 3,
+        Accelerometer = 4
     }
 }

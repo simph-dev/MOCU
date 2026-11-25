@@ -70,6 +70,14 @@ namespace Simph.MoogProbe
         /// </summary>
         public bool Duplicate { get; private set; }
 
+        /// <summary>
+        /// The Requested Feedback Data bits of the Status Response Word: which
+        /// blocks the MBC puts in its replies (CDS7330 Rev. F note 4.3-4: 0x80
+        /// leg lengths, 0x40 DOF, 0x20 accelerometer, 0x10 actuator data).
+        /// DOF only by default, which is all MOCU-MoogControl has ever asked for.
+        /// </summary>
+        public uint RequestedFeedback { get; private set; } = StatusResponseWord.FeedbackDof;
+
         public double Seconds { get; private set; } = 10.0;
         public double SettleSeconds { get; private set; } = 2.0;
 
@@ -128,7 +136,7 @@ namespace Simph.MoogProbe
 
         public TimeSpan Interval => TimeSpan.FromSeconds(1.0 / Rate);
 
-        public uint StatusWord => StatusResponseWord.Build(DeclaredRate);
+        public uint StatusWord => StatusResponseWord.Build(DeclaredRate, RequestedFeedback);
 
         public int CopiesPerCommand => Duplicate ? 2 : 1;
 
@@ -150,6 +158,7 @@ namespace Simph.MoogProbe
             $"{Phase.ToString().ToLowerInvariant()}-{Rate}send-{DeclaredRate}declared" +
             (Phase == Phase.Move ? "-" + CommandedDuration.ToString("F2", CultureInfo.InvariantCulture) + "s" : "") +
             (Duplicate ? "-duplicated" : "") +
+            (RequestedFeedback != StatusResponseWord.FeedbackDof ? $"-feedback{RequestedFeedback:X2}" : "") +
             (Precompensate ? "-precomp" : "") +
             (Precompensate && DriveLagMilliseconds > 0
                 ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + DriveLagActsOn
@@ -228,6 +237,7 @@ namespace Simph.MoogProbe
                         case "--phase": options.Phase = ParsePhase(value); break;
                         case "--rate": options.Rate = int.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--declare": options.DeclaredRate = int.Parse(value, CultureInfo.InvariantCulture); break;
+                        case "--feedback": options.RequestedFeedback = ParseFeedback(value); break;
                         case "--seconds": options.Seconds = Number(value); break;
                         case "--settle": options.SettleSeconds = Number(value); break;
                         case "--dither": options.DitherMetres = Number(value) / 1000.0; break;
@@ -332,6 +342,17 @@ namespace Simph.MoogProbe
         private static double Number(string value) =>
             double.Parse(value, CultureInfo.InvariantCulture);
 
+        private static uint ParseFeedback(string value)
+        {
+            string digits = value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? value.Substring(2) : value;
+            uint bits = uint.Parse(digits, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+
+            if (bits > 0xFF)
+                throw new FormatException("the requested feedback is one byte, 0x00 to 0xFF.");
+
+            return bits;
+        }
+
         private static Phase ParsePhase(string value) => value.ToLowerInvariant() switch
         {
             "listen" => Phase.Listen,
@@ -364,6 +385,9 @@ namespace Simph.MoogProbe
                              MOCU-MoogControl has always sent)
   --duplicate                send each command twice with the same sequence
                              count, per CDS7330 Rev. F 4.2.1
+  --feedback HEX             blocks the MBC should put in its replies: 80 leg
+                             lengths, 40 DOF (default), 20 accelerometer,
+                             10 actuator data; add them, e.g. C0
   --seconds S                length of a listen or hold run (default 10)
   --settle S                 hold at neutral before moving, in move (default 2)
   --dither MM                amplitude in mm of a slow sine on surge while

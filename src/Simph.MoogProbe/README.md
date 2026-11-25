@@ -152,6 +152,15 @@ dotnet run --project src/Simph.MoogProbe -- --phase move --duration 0.8 --rate 9
 To see inside the filter, switch on `Recorder_DOF_Trajectory_Filter` under
 Recorder > Filter Chain in the MBC's configuration; it applies at once.
 
+Each leg's own length comes back in every reply when asked for. `--feedback`
+sets which blocks the MBC sends (80 leg lengths, 40 DOF, 10 actuator data);
+`D0` asks for all three. Asking for more did not change the motion (2026-11-25,
+controls before and after):
+
+```bash
+dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --feedback D0 --repeats 3 --arm
+```
+
 ## Reading the output
 
 Each run writes a folder under `probe-logs/`:
@@ -159,7 +168,10 @@ Each run writes a folder under `probe-logs/`:
 - `sent.csv` — one row per packet: slot, sequence, due, sent, lateness, gap, pose
 - `received.csv` — one row per reply: MBC counter, arrival, gap, state, fault words,
   pose (surge, sway, heave, then roll, pitch, yaw; logs up to 2026-11-24 17:51
-  have no rotations)
+  have no rotations), then, when asked for, the six leg lengths (metres from fully
+  retracted; MBC actuators A to F are `HexapodGeometry` legs 1, 4, 5, 2, 3, 0) and
+  the first three actuator values: current (by the manual's order), motor speed (about -8300 per m/s of
+  stroke) and following error, which this machine always sends as zero
 - `summary.txt` — the same figures printed to the console, with the movement table
 
 The first send is always a millisecond or two late: it carries the JIT of the

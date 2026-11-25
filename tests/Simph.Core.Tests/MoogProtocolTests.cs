@@ -234,4 +234,73 @@ public class MoogProtocolTests
         Assert.True(response.HasFault);
         Assert.Equal(0x40u, response.FaultWord2);
     }
+
+
+    // ------------------------------------------------- feedback blocks
+
+    private static byte[] Words(params uint[] words)
+    {
+        var bytes = new byte[4 * words.Length];
+        for (int i = 0; i < words.Length; i++)
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(4 * i, 4), words[i]);
+        return bytes;
+    }
+
+    /// <summary>The fixed words of a reply from the parked platform, 2026-11-25.</summary>
+    private static readonly uint[] Header = { 0, 0x021FA9D2, 0, 200, 0x03E800D1, 0x42, 0, 0, 0 };
+
+    private static readonly uint[] DofBlock = { 1, 0x3801C13E, 0x36E1CD76, 0xB7AF2863, 0xB7737228, 0xB7FB132E, 0xB7CB7244 };
+    private static readonly uint[] LegBlock = { 2, 0x36924C1D, 0x3603888B, 0x38690919, 0xB56989F2, 0x3874F286, 0x37FB529C };
+
+    /// <summary>
+    /// A reply asked for DOF and leg lengths (0xC0), word for word as the MBC
+    /// sent it: the blocks chain, DOF first, and a zero ends the chain.
+    /// </summary>
+    [Fact]
+    public void A_reply_with_dof_and_leg_lengths_gives_both()
+    {
+        var reply = Words(Header.Concat(DofBlock).Concat(LegBlock).Append(0u).ToArray());
+
+        Assert.True(StatusResponse.TryReadDofFeedback(reply, out var pose));
+        Assert.True(StatusResponse.TryReadBlock(reply, FeedbackBlock.LegLengths, out var legs));
+
+        Assert.Equal(-1.4511e-5, pose.Surge, 9);
+        Assert.Equal(3.0936e-5, pose.Roll, 9);
+        Assert.Equal(6, legs.Length);
+        Assert.Equal(5.556e-5, legs[2], 9);
+    }
+
+    /// <summary>
+    /// Asked for leg lengths alone, the MBC puts them where the DOF block
+    /// usually sits. Reading a fixed offset would take them for a pose.
+    /// </summary>
+    [Fact]
+    public void Leg_lengths_alone_are_not_read_as_a_pose()
+    {
+        var reply = Words(Header.Concat(LegBlock).Append(0u).ToArray());
+
+        Assert.False(StatusResponse.TryReadDofFeedback(reply, out _));
+        Assert.True(StatusResponse.TryReadBlock(reply, FeedbackBlock.LegLengths, out _));
+    }
+
+    [Fact]
+    public void Actuator_data_skips_its_count_word_and_carries_ten_values_per_actuator()
+    {
+        var actuators = new uint[1 + 60];
+        actuators[1 + 10 * 2 + 1] = 0x3F800000;   // actuator C, second value: 1.0
+
+        var reply = Words(Header.Concat(DofBlock).Append(3u).Concat(actuators).Append(0u).ToArray());
+
+        Assert.True(StatusResponse.TryReadBlock(reply, FeedbackBlock.ActuatorData, out var values));
+        Assert.Equal(60, values.Length);
+        Assert.Equal(1.0f, values[21]);
+    }
+
+    [Fact]
+    public void A_block_cut_short_is_not_read()
+    {
+        var reply = Words(Header.Concat(DofBlock.Take(4)).ToArray());
+
+        Assert.False(StatusResponse.TryReadDofFeedback(reply, out _));
+    }
 }

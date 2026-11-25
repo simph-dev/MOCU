@@ -7,6 +7,8 @@ using System.Text;
 
 using Simph.Core.Time;
 
+using Simph.MoogProbe.Protocol;
+
 namespace Simph.MoogProbe
 {
     /// <summary>
@@ -102,7 +104,12 @@ namespace Simph.MoogProbe
             // of the older logs, which have none, keeps its position and one
             // reader handles both. They are needed to check the tilt: a leg
             // model fitted without them takes the platform as level.
-            writer.WriteLine("mbc_count,mbc_step,received_s,gap_us,state,status_word,declared_echo,io,fault1,fault2,fault3,bytes,surge,sway,heave,roll,pitch,yaw");
+            // Leg lengths and actuator data follow for the same reason. Of the
+            // ten actuator floats only the first three are written; the summary
+            // says whether the other seven were ever non-zero.
+            writer.WriteLine("mbc_count,mbc_step,received_s,gap_us,state,status_word,declared_echo,io,fault1,fault2,fault3,bytes,surge,sway,heave,roll,pitch,yaw," +
+                "leg_a,leg_b,leg_c,leg_d,leg_e,leg_f," +
+                string.Join(",", "abcdef".SelectMany(a => new[] { $"act_{a}0", $"act_{a}1", $"act_{a}2" })));
 
             long previous = 0;
             uint previousCount = 0;
@@ -131,8 +138,22 @@ namespace Simph.MoogProbe
                     r.HasFeedback ? F(r.Feedback.Heave, 7) : "",
                     r.HasFeedback ? F(r.Feedback.Roll, 8) : "",
                     r.HasFeedback ? F(r.Feedback.Pitch, 8) : "",
-                    r.HasFeedback ? F(r.Feedback.Yaw, 8) : ""));
+                    r.HasFeedback ? F(r.Feedback.Yaw, 8) : "",
+                    Floats(r.Bytes, FeedbackBlock.LegLengths, 6, i => i, 8),
+                    Floats(r.Bytes, FeedbackBlock.ActuatorData, 18, i => 10 * (i / 3) + i % 3, 6)));
             }
+        }
+
+        /// <summary>
+        /// Some values of one feedback block as CSV fields, or as many empty
+        /// fields when the reply does not carry the block.
+        /// </summary>
+        private static string Floats(byte[] bytes, FeedbackBlock block, int count, Func<int, int> index, int digits)
+        {
+            if (!StatusResponse.TryReadBlock(bytes, block, out var values))
+                return new string(',', count - 1);
+
+            return string.Join(",", Enumerable.Range(0, count).Select(i => F(values[index(i)], digits)));
         }
 
         private string Summarise(IReadOnlyList<SentRecord> sent, IReadOnlyList<ReceivedRecord> received,
@@ -207,6 +228,26 @@ namespace Simph.MoogProbe
 
             text.AppendLine($"  responses            {received.Count} for {commands} commands");
 
+            // The words after the fixed header depend on the feedback requested,
+            // so one reply of each size is printed whole, as 32-bit words.
+            foreach (var size in received.GroupBy(r => r.Length))
+            {
+                text.AppendLine($"  {size.Count()} replies of {size.Key} bytes, the first as words:");
+                text.AppendLine("    " + Words(size.First().Bytes));
+            }
+
+            var actuatorData = received
+                .Select(r => StatusResponse.TryReadBlock(r.Bytes, FeedbackBlock.ActuatorData, out var v) ? v : null)
+                .Where(v => v != null).ToList();
+
+            if (actuatorData.Count > 0)
+            {
+                var largest = Enumerable.Range(0, 10).Select(word =>
+                    actuatorData.Max(v => Enumerable.Range(0, 6).Max(a => Math.Abs(v![10 * a + word]))));
+                text.AppendLine("  actuator data, largest |value| of each of the ten floats over all actuators:");
+                text.AppendLine("    " + string.Join(" ", largest.Select(x => x.ToString("G4", CultureInfo.InvariantCulture))));
+            }
+
             var states = received.GroupBy(r => r.Response.State).Select(g => $"{g.Key} x{g.Count()}");
             text.AppendLine($"  states seen          {string.Join(", ", states)}");
 
@@ -275,6 +316,27 @@ namespace Simph.MoogProbe
 
         private static double Seconds(long nanoseconds) => nanoseconds / 1e9;
         private static double Micros(long nanoseconds) => nanoseconds / 1e3;
+
+        /// <summary>
+        /// Each big-endian 32-bit word as hex and, when it reads as a plausible
+        /// float, that float too: a leg length or a pose is easier to recognise
+        /// as 0.4401 than as 3EE15768.
+        /// </summary>
+        private static string Words(byte[] bytes)
+        {
+            var words = new List<string>();
+
+            for (int offset = 0; offset + 4 <= bytes.Length; offset += 4)
+            {
+                uint word = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(offset, 4));
+                float asFloat = BitConverter.Int32BitsToSingle((int)word);
+                bool plausible = word != 0 && Math.Abs(asFloat) > 1e-6 && Math.Abs(asFloat) < 1e4;
+
+                words.Add($"{offset}:{word:X8}" + (plausible ? $"({asFloat.ToString("G5", CultureInfo.InvariantCulture)})" : ""));
+            }
+
+            return string.Join(" ", words);
+        }
 
         private static double Median(List<double> values) => Percentile(values, 0.5);
 
