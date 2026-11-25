@@ -19,10 +19,15 @@ namespace Simph.Core.Platform
     ///
     /// <para>Poses are in the MBC's DOF terms: surge forward, heave measured from
     /// the settled position and negative upwards, so neutral is heave -0.22. The
-    /// order and signs of roll, pitch and yaw are assumed (yaw, then pitch, then
-    /// roll) and not yet checked against the MBC; the stimuli so far have no
-    /// rotation. The layout is symmetric about the surge axis, so which side is
-    /// positive sway does not change any leg length.</para>
+    /// MBC's vertical axis points down; the leg lengths are worked out with it
+    /// pointing up, and turning that one axis over reverses the sense of roll
+    /// and pitch but not of yaw. Measured on 2026-11-25: with roll and pitch
+    /// taken the other way, the per-leg compensation of a 16 degree movement
+    /// doubled the platform's tilt (pitch 0.40-0.50 mrad) instead of removing
+    /// it (0.13-0.21). The sign of yaw and the order of the rotations (yaw, then
+    /// pitch, then roll) are still assumed. The layout is symmetric about the
+    /// surge axis, so which side is positive sway does not change any leg
+    /// length.</para>
     /// </summary>
     public sealed class HexapodGeometry
     {
@@ -75,8 +80,10 @@ namespace Simph.Core.Platform
 
         public void LegLengths(Pose6 pose, double[] lengths)
         {
-            double cr = Math.Cos(pose.Roll), sr = Math.Sin(pose.Roll);
-            double cp = Math.Cos(pose.Pitch), sp = Math.Sin(pose.Pitch);
+            // Roll and pitch negated: the MBC's DOF has its vertical axis down,
+            // the frame below has it up (see the class comment).
+            double cr = Math.Cos(-pose.Roll), sr = Math.Sin(-pose.Roll);
+            double cp = Math.Cos(-pose.Pitch), sp = Math.Sin(-pose.Pitch);
             double cy = Math.Cos(pose.Yaw), sy = Math.Sin(pose.Yaw);
             double height = SettledJointSeparationMetres - pose.Heave;
 

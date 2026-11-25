@@ -128,4 +128,24 @@ public class PerLegCompensationTests
                     $"{axis} {Math.Abs(platform[n][axis] - wanted[axis]) * 1000:F3} mm off at frame {n - Before}");
         }
     }
+
+    /// <summary>
+    /// The command tilts only because the led leg lengths are turned back into a
+    /// pose, so the sign of that tilt is the geometry's rotation convention. On
+    /// 2026-11-25 a command tilted this way, at most roll -0.116 and pitch
+    /// -0.183 mrad, halfway through a 16 degree movement forward, left the
+    /// platform at 0.13-0.21 mrad of pitch; the same command tilted the other
+    /// way, at 0.40-0.50.
+    /// </summary>
+    [Fact]
+    public void A_forward_movement_is_compensated_with_the_tilt_measured_to_level_the_platform()
+    {
+        var plan = LabSetup.Intended();
+        var motion = new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
+
+        var halfway = motion.Command(plan.T0 + motion.PlanDelay + TimeSpan.FromTicks(plan.Duration.Ticks / 2));
+
+        Assert.InRange(halfway.Roll * 1000, -0.126, -0.106);
+        Assert.InRange(halfway.Pitch * 1000, -0.193, -0.173);
+    }
 }

@@ -382,8 +382,8 @@ namespace Simph.MoogProbe
   --drive-lag MS             with --precompensate, override the setup's drive
                              lag; 0 compensates the filter only
   --drive-lead MS            with --precompensate, how much earlier than the lag
-                             the drives answer (setup: 0; 0 also when only
-                             --drive-lag is given)
+                             the drives answer (default from the setup;
+                             0 when only --drive-lag is given)
   --lag-in legs|axes         with --precompensate, override where the drive lag
                              acts (setup: legs)
   --setup FILE               rig setup (default rig-setup.json next to the exe,
