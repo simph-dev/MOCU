@@ -71,18 +71,19 @@ namespace Simph.Core.Platform
 
         /// <summary>
         /// The lab's MB-E-6DOF/12/1000. ACC_LIM from motionbase.xml: 2.0 m/s^2 on
-        /// surge, sway and heave, 1.75 rad/s^2 on the rotations. Drive lag 96 ms,
-        /// measured on surge and sway on 2026-11-02. Per leg because the platform,
-        /// compensated per axis on 2026-11-24, rose 0.45-0.55 mm at peak speed,
-        /// and a per-leg lag through this geometry predicts that rise at every
-        /// heading; compensated per leg on the same day it rose 0.09-0.12 mm.
-        /// Still a pure lag here, as in config/rig-setup.json, which the tests
-        /// keep equal to this; the measured better fit is in <see cref="DriveLead"/>.
+        /// surge, sway and heave, 1.75 rad/s^2 on the rotations. Drives: a 106.8 ms
+        /// lag answering 9.3 ms early, see <see cref="DriveLead"/>; it replaced the
+        /// pure 96 ms lag measured on surge and sway on 2026-11-02. Per leg because
+        /// the platform, compensated per axis on 2026-11-24, rose 0.45-0.55 mm at
+        /// peak speed, and a per-leg lag through this geometry predicts that rise
+        /// at every heading; compensated per leg on the same day it rose
+        /// 0.09-0.12 mm, and 0.03-0.06 mm with the lead. config/rig-setup.json
+        /// describes the same machine; the tests keep the two equal.
         /// </summary>
         public static PlatformModel MoogMbE6Dof { get; } = new PlatformModel(
             new Pose6(roll: 1.75, pitch: 1.75, yaw: 1.75, surge: 2.0, sway: 2.0, heave: 2.0),
-            TimeSpan.FromMilliseconds(96),
-            TimeSpan.Zero,
+            TimeSpan.FromMilliseconds(106.8),
+            TimeSpan.FromMilliseconds(9.3),
             HexapodGeometry.MoogMbE6Dof,
             TimeSpan.FromMilliseconds(1));
     }

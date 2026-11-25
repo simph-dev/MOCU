@@ -19,8 +19,13 @@
     // motionbase.xml, DOF Trajectory Filter: ACC_LIM per axis.
     "filterAcceleration": { "surge": 2.0, "sway": 2.0, "heave": 2.0, "roll": 1.75, "pitch": 1.75, "yaw": 1.75 },
 
-    // Measured on 2026-11-02 from the recorder: a first-order lag, the same on X and Y.
-    "driveLagMilliseconds": 96,
+    // Each leg answers like a first-order lag of driveLagMilliseconds, but
+    // driveLeadMilliseconds early. Fitted on the movement runs of 2026-11-24;
+    // compensated this way the platform reached 99% of the path at 881-893 ms
+    // (plan 880) instead of 916-925 with the pure 96 ms lag measured on
+    // 2026-11-02. Leaving the lead out describes a pure lag.
+    "driveLagMilliseconds": 106.8,
+    "driveLeadMilliseconds": 9.3,
 
     // "legs": the lag acts on each leg's length (measured 2026-11-24: compensating
     // per axis left the platform rising about 0.5 mm at peak speed).

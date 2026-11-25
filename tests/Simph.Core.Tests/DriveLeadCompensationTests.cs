@@ -27,6 +27,11 @@ public class DriveLeadCompensationTests
         TimeSpan.FromMilliseconds(106.8), TimeSpan.FromMilliseconds(9.3),
         HexapodGeometry.MoogMbE6Dof, TimeSpan.FromMilliseconds(1));
 
+    /// <summary>The pure 96 ms lag the platform was compensated with until 2026-11-24.</summary>
+    private static readonly PlatformModel PureLag96 = new PlatformModel(
+        Fitted.FilterAcceleration, TimeSpan.FromMilliseconds(96), TimeSpan.Zero,
+        Fitted.LegGeometry, Fitted.Frame);
+
     private const int Before = 50;
     private const int After = 900;
 
@@ -122,7 +127,7 @@ public class DriveLeadCompensationTests
     public void Compensated_for_a_pure_96_ms_lag_the_platform_arrives_late_as_it_did_on_the_day()
     {
         var plan = LabSetup.Intended();
-        var motion = new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
+        var motion = new CompensatedMotion(plan, PureLag96);
 
         var platform = ThroughFilterAndLegs(motion.Command, plan.Duration, Fitted);
 
@@ -145,10 +150,10 @@ public class DriveLeadCompensationTests
     {
         var plan = LabSetup.Stimulus(LabSetup.WidestHeadingDegrees, TimeSpan.FromMilliseconds(milliseconds));
         var withLead = new CompensatedMotion(plan, Fitted);
-        var pureLag = new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
+        var pureLag = new CompensatedMotion(plan, PureLag96);
 
         var platform = ThroughFilterAndLegs(withLead.Command, withLead.CommandDuration, Fitted);
-        var reference = ThroughFilterAndLegs(pureLag.Command, pureLag.CommandDuration, PlatformModel.MoogMbE6Dof);
+        var reference = ThroughFilterAndLegs(pureLag.Command, pureLag.CommandDuration, PureLag96);
 
         foreach (double fraction in new[] { 0.10, 0.50, 0.90, 0.99 })
         {

@@ -19,7 +19,13 @@ namespace Simph.Core.Tests;
 /// </summary>
 public class PerLegCompensationTests
 {
-    private static readonly PlatformModel PerLeg = PlatformModel.MoogMbE6Dof;
+    /// <summary>
+    /// The pure 96 ms lag these measurements were made with, so the tests are
+    /// about legs against axes alone; the lead has its own tests.
+    /// </summary>
+    private static readonly PlatformModel PerLeg = new PlatformModel(
+        PlatformModel.MoogMbE6Dof.FilterAcceleration, TimeSpan.FromMilliseconds(96), TimeSpan.Zero,
+        HexapodGeometry.MoogMbE6Dof, PlatformModel.MoogMbE6Dof.Frame);
 
     private static readonly PlatformModel PerAxis = new PlatformModel(
         PerLeg.FilterAcceleration, PerLeg.DriveLag, PerLeg.DriveLead, legGeometry: null, PerLeg.Frame);

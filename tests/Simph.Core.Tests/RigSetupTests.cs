@@ -68,22 +68,10 @@ public class RigSetupTests
     [Fact]
     public void A_setup_without_a_drive_lead_describes_a_pure_lag()
     {
-        string json = File.ReadAllText(RigSetup.DefaultPath);
+        string json = File.ReadAllText(RigSetup.DefaultPath).Replace("\"driveLeadMilliseconds\": 9.3,", "");
 
         Assert.DoesNotContain("\"driveLeadMilliseconds\"", json);
         Assert.Equal(TimeSpan.Zero, RigSetup.Parse(json).Model.DriveLead);
-    }
-
-    [Fact]
-    public void A_drive_lead_in_the_setup_is_read()
-    {
-        string json = File.ReadAllText(RigSetup.DefaultPath)
-            .Replace("\"driveLagMilliseconds\": 96,", "\"driveLagMilliseconds\": 106.8, \"driveLeadMilliseconds\": 9.3,");
-
-        var model = RigSetup.Parse(json).Model;
-
-        Assert.Equal(TimeSpan.FromMilliseconds(106.8), model.DriveLag);
-        Assert.Equal(TimeSpan.FromMilliseconds(9.3), model.DriveLead);
     }
 
     [Fact]
