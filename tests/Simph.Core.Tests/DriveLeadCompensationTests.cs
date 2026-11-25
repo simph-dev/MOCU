@@ -129,7 +129,7 @@ public class DriveLeadCompensationTests
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, PureLag96);
 
-        var platform = ThroughFilterAndLegs(motion.Command, plan.Duration, Fitted);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), plan.Duration, Fitted);
 
         // Measured on 2026-11-24: middle at 497-501 ms, 99% at 916-924 ms.
         Assert.InRange(Reaches(platform, plan, 0.50), 497, 503);
@@ -152,8 +152,8 @@ public class DriveLeadCompensationTests
         var withLead = new CompensatedMotion(plan, Fitted);
         var pureLag = new CompensatedMotion(plan, PureLag96);
 
-        var platform = ThroughFilterAndLegs(withLead.Command, withLead.CommandDuration, Fitted);
-        var reference = ThroughFilterAndLegs(pureLag.Command, pureLag.CommandDuration, PureLag96);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(withLead), withLead.CommandDuration, Fitted);
+        var reference = ThroughFilterAndLegs(LabSetup.Streamed(pureLag), pureLag.CommandDuration, PureLag96);
 
         foreach (double fraction in new[] { 0.10, 0.50, 0.90, 0.99 })
         {
@@ -172,7 +172,7 @@ public class DriveLeadCompensationTests
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, Fitted);
 
-        var platform = ThroughFilterAndLegs(motion.Command, motion.CommandDuration, Fitted);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), motion.CommandDuration, Fitted);
 
         for (int n = 0; n < platform.Length; n++)
         {
@@ -184,18 +184,28 @@ public class DriveLeadCompensationTests
         }
     }
 
+    /// <summary>
+    /// 1009 frames for a 1 s plan at 1 ms a frame, as the probe sent on
+    /// 2026-11-25 (sent.csv: 9 frames at the start point, 999 moving, 1 on the
+    /// target): the plan's 1000 frames, held back by the 9 of the drive lead.
+    /// </summary>
     [Fact]
     public void The_command_waits_out_the_lead_and_ends_exactly_on_the_target()
     {
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, Fitted);
+        var table = motion.Table();
 
         // 9.3 ms in whole frames.
         Assert.Equal(TimeSpan.FromMilliseconds(9), motion.PlanDelay);
-        Assert.Equal(plan.Duration + TimeSpan.FromMilliseconds(9), motion.CommandDuration);
+        Assert.Equal(1009, table.Count);
 
-        Assert.Equal(plan.From, motion.Command(plan.T0 + TimeSpan.FromMilliseconds(8)));
-        Assert.Equal(plan.To, motion.Command(plan.T0 + motion.CommandDuration));
+        for (int k = 0; k < 9; k++)
+            Assert.Equal(plan.From, table[k]);
+
+        Assert.NotEqual(plan.From, table[9]);
+        Assert.NotEqual(plan.To, table[1007]);
+        Assert.Equal(plan.To, table[1008]);
     }
 
     /// <summary>
@@ -211,13 +221,13 @@ public class DriveLeadCompensationTests
         var plan = LabSetup.Intended();
         var model = new PlatformModel(Fitted.FilterAcceleration, Fitted.DriveLag,
             TimeSpan.FromMilliseconds(leadMilliseconds), Fitted.LegGeometry, Fitted.Frame);
-        var motion = new CompensatedMotion(plan, model);
+        var table = new CompensatedMotion(plan, model).Table();
 
-        var previous = motion.Command(plan.T0 - TimeSpan.FromMilliseconds(5));
+        var previous = table[-5];
 
-        for (int n = -4; n <= (int)motion.CommandDuration.TotalMilliseconds + 5; n++)
+        for (int n = -4; n <= table.Count + 5; n++)
         {
-            var command = motion.Command(plan.T0 + TimeSpan.FromMilliseconds(n));
+            var command = table[n];
 
             foreach (var axis in Axes.All)
                 Assert.True(Math.Abs(command[axis] - previous[axis]) < 0.001,

@@ -24,9 +24,10 @@ namespace Simph.Core.Motion.Compensation
     /// does. In between it leads by up to 58 mm, and inverting the lag makes it
     /// overshoot the end point by 2.1 mm (16 degrees, 13 cm, 1 s; 3.4 mm at 0.9 s).
     ///
-    /// Correct only at times on the plan's frame grid (T0 plus whole frames):
-    /// between frames the end guard misses a frame, and a quarter to three
-    /// quarters of a frame off the grid the command steps 2 to 18 mm in one frame.
+    /// The command is handed out only as a <see cref="CommandTable"/>, one pose
+    /// per frame from the plan's T0. Worked out between frames it was wrong: the
+    /// end guard missed a frame, and a quarter to three quarters of a frame off
+    /// the grid the command stepped 2 to 18 mm in one frame.
     /// </summary>
     public sealed class CompensatedMotion
     {
@@ -90,6 +91,32 @@ namespace Simph.Core.Motion.Compensation
         /// </summary>
         public TimeSpan CommandDuration => _plan.Duration + _planDelay;
 
+        /// <summary>
+        /// Frames in the command: the frame rate times <see cref="CommandDuration"/>,
+        /// 1009 for a 1 s plan (1000 frames of the plan, 9 of the drive lead).
+        /// </summary>
+        public int FrameCount => (int)Math.Ceiling((double)CommandDuration.Ticks / _frame.Ticks);
+
+        /// <summary>
+        /// The command, worked out once: frame k is to be sent at T0 plus k
+        /// frames. The first frames repeat the start point until the delayed
+        /// plan begins; the last one is the end point.
+        /// </summary>
+        public CommandTable Table()
+        {
+            var frames = new Pose6[FrameCount];
+
+            // A plan that is not finite cannot be led: the filter's lead takes the
+            // sign of a speed and throws on NaN. Its table is left at the start
+            // point, as non-finite as the plan, and the validator refuses it.
+            bool finite = !_plan.From.HasNonFinite() && !_plan.To.HasNonFinite();
+
+            for (int k = 0; k < frames.Length; k++)
+                frames[k] = finite ? CommandAt(_plan.T0 + TimeSpan.FromTicks(_frame.Ticks * k)) : _plan.From;
+
+            return new CommandTable(this, frames);
+        }
+
         /// <summary>What the filter's output should be at this instant.</summary>
         public Pose6 FilterOutput(Timestamp now)
         {
@@ -142,8 +169,8 @@ namespace Simph.Core.Motion.Compensation
             return (FilterOutput(now + _frame) - FilterOutput(now)) / _dt;
         }
 
-        /// <summary>What to send at this instant.</summary>
-        public Pose6 Command(Timestamp now)
+        /// <summary>What to send at this instant, which must lie on the frame grid.</summary>
+        private Pose6 CommandAt(Timestamp now)
         {
             // The profile is cut off at both ends with a little speed left, so the
             // lag's lead jumps by about 0.35 mm on the first and the last frame.
@@ -170,17 +197,16 @@ namespace Simph.Core.Motion.Compensation
         }
 
         /// <summary>
-        /// Walks the whole movement and reports what it asks of the machine, so a
-        /// plan the filter cannot deliver is caught before anything moves.
+        /// Walks the filter's output over the whole movement and reports what it
+        /// asks of the filter, so a plan the filter cannot deliver is caught
+        /// before anything moves. The command itself is checked on its table.
         /// </summary>
         public CompensationDemand Measure()
         {
             var peakAcceleration = Pose6.Zero;
             var peakSpeed = Pose6.Zero;
-            var lowest = _plan.From;
-            var highest = _plan.From;
 
-            int frames = (int)Math.Ceiling(CommandDuration.TotalSeconds / _dt);
+            int frames = FrameCount;
             int leadFrames = (int)(_planDelay.Ticks / _frame.Ticks);
 
             var before = FilterOutput(_plan.T0 - _frame);
@@ -190,7 +216,6 @@ namespace Simph.Core.Motion.Compensation
             {
                 var when = _plan.T0 + TimeSpan.FromTicks(_frame.Ticks * n);
                 var after = FilterOutput(when + _frame);
-                var command = Command(when);
 
                 // The profile is cut off at both ends with a little speed left, so
                 // the frames next to them carry a small step. The filter's own
@@ -208,29 +233,24 @@ namespace Simph.Core.Motion.Compensation
                         peakAcceleration = peakAcceleration.With(axis, Math.Max(peakAcceleration[axis], acceleration));
                         peakSpeed = peakSpeed.With(axis, Math.Max(peakSpeed[axis], speed));
                     }
-
-                    lowest = lowest.With(axis, Math.Min(lowest[axis], command[axis]));
-                    highest = highest.With(axis, Math.Max(highest[axis], command[axis]));
                 }
 
                 before = at;
                 at = after;
             }
 
-            return new CompensationDemand(peakSpeed, peakAcceleration, lowest, highest);
+            return new CompensationDemand(peakSpeed, peakAcceleration);
         }
     }
 
 
-    /// <summary>What a compensated movement asks of the machine, axis by axis.</summary>
+    /// <summary>What a compensated movement asks of the MBC's filter, axis by axis.</summary>
     public sealed class CompensationDemand
     {
-        public CompensationDemand(Pose6 peakSpeed, Pose6 peakAcceleration, Pose6 lowestCommand, Pose6 highestCommand)
+        public CompensationDemand(Pose6 peakSpeed, Pose6 peakAcceleration)
         {
             PeakSpeed = peakSpeed;
             PeakAcceleration = peakAcceleration;
-            LowestCommand = lowestCommand;
-            HighestCommand = highestCommand;
         }
 
         /// <summary>Peak speed of the filter's output.</summary>
@@ -241,11 +261,5 @@ namespace Simph.Core.Motion.Compensation
         /// filter cannot follow and the compensation stops being exact.
         /// </summary>
         public Pose6 PeakAcceleration { get; }
-
-        /// <summary>The lowest value sent on each axis.</summary>
-        public Pose6 LowestCommand { get; }
-
-        /// <summary>The highest value sent on each axis.</summary>
-        public Pose6 HighestCommand { get; }
     }
 }

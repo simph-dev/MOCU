@@ -171,8 +171,8 @@ public class TrajectoryFilterModelTests
         var plan = LabSetup.Stimulus(LabSetup.WidestHeadingDegrees, duration);
         var motion = Compensated(plan, 0);
 
-        var surge = Filter().Run(Sampled(motion.Command, duration, Axis.Surge));
-        var sway = Filter().Run(Sampled(motion.Command, duration, Axis.Sway));
+        var surge = Filter().Run(Sampled(LabSetup.Streamed(motion), duration, Axis.Surge));
+        var sway = Filter().Run(Sampled(LabSetup.Streamed(motion), duration, Axis.Sway));
         var wanted = Sampled(plan.Evaluate, duration, Axis.Surge);
 
         Assert.True(Bend(surge, sway) < 0.00005, $"bend {Bend(surge, sway) * 1000:F4} mm");
@@ -193,8 +193,8 @@ public class TrajectoryFilterModelTests
         var plan = LabSetup.Intended();
         var motion = Compensated(plan, DriveLagSeconds);
 
-        var surge = DriveLag(Filter().Run(Sampled(motion.Command, duration, Axis.Surge)));
-        var sway = DriveLag(Filter().Run(Sampled(motion.Command, duration, Axis.Sway)));
+        var surge = DriveLag(Filter().Run(Sampled(LabSetup.Streamed(motion), duration, Axis.Surge)));
+        var sway = DriveLag(Filter().Run(Sampled(LabSetup.Streamed(motion), duration, Axis.Sway)));
         var wanted = Sampled(plan.Evaluate, duration, Axis.Surge);
 
         Assert.True(Bend(surge, sway) < 0.0001, $"bend {Bend(surge, sway) * 1000:F3} mm");
@@ -224,27 +224,28 @@ public class TrajectoryFilterModelTests
     public void The_command_overshoots_the_end_point_only_slightly()
     {
         var plan = LabSetup.Intended();
-        var demand = Compensated(plan, DriveLagSeconds).Measure();
+        var table = Compensated(plan, DriveLagSeconds).Table();
 
-        Assert.InRange(demand.HighestCommand.Surge - plan.To.Surge, 0, 0.003);
+        Assert.InRange(table.Highest.Surge - plan.To.Surge, 0, 0.003);
     }
 
     [Fact]
     public void Starts_and_ends_on_the_plan()
     {
         var plan = LabSetup.Intended();
-        var motion = Compensated(plan, DriveLagSeconds);
+        var table = Compensated(plan, DriveLagSeconds).Table();
 
-        Assert.Equal(plan.From, motion.Command(plan.T0 - TimeSpan.FromMilliseconds(50)));
-        Assert.Equal(plan.To, motion.Command(plan.End + TimeSpan.FromMilliseconds(50)));
+        // With no drive lead to wait out, the first frame already moves.
+        Assert.Equal(plan.From, table[-1]);
+        Assert.Equal(plan.To, table[table.Count - 1]);
     }
 
     [Fact]
     public void Leaves_a_motionless_axis_alone()
     {
         var plan = LabSetup.Intended();
-        var motion = Compensated(plan, DriveLagSeconds);
+        var table = Compensated(plan, DriveLagSeconds).Table();
 
-        Assert.Equal(plan.From.Heave, motion.Command(plan.T0 + TimeSpan.FromMilliseconds(500)).Heave);
+        Assert.Equal(plan.From.Heave, table[500].Heave);
     }
 }

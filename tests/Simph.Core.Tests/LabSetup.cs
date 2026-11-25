@@ -70,7 +70,20 @@ public static class LabSetup
     public static MotionPlan Commanded(double headingDegrees = WidestHeadingDegrees) =>
         Stimulus(headingDegrees, StimulusDuration * CorrectionFactor);
 
-    /// <summary>The plan with the filter and the drives compensated, as the new system sends it.</summary>
-    public static CompensatedMotion Compensated(MotionPlan plan) =>
-        new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
+    /// <summary>The plan with the filter and the drives compensated, frame by frame as the new system sends it.</summary>
+    public static CommandTable Compensated(MotionPlan plan) =>
+        new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof).Table();
+
+    /// <summary>
+    /// What the send loop puts out at each instant on the frame grid: the
+    /// command table, the start point before it and its last frame after it.
+    /// The simulations take the command this way.
+    /// </summary>
+    public static Func<Timestamp, Pose6> Streamed(CompensatedMotion motion)
+    {
+        var table = motion.Table();
+        long frameTicks = table.Frame.Ticks;
+
+        return now => table[(int)Math.Round((double)(now - motion.Plan.T0).Ticks / frameTicks)];
+    }
 }

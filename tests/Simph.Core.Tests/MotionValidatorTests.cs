@@ -3,6 +3,7 @@ using System.Linq;
 
 using Simph.Core.Geometry;
 using Simph.Core.Motion;
+using Simph.Core.Motion.Compensation;
 using Simph.Core.Motion.Limits;
 using Simph.Core.Time;
 
@@ -228,7 +229,7 @@ public class MotionValidatorTests
     }
 
     /// <summary>
-    /// The command overshoots the end point by about a millimetre, so a plan that
+    /// The command overshoots the end point by about 2 mm, so a plan that
     /// stops exactly at the travel limit sends a command past it.
     /// </summary>
     [Fact]
@@ -258,6 +259,40 @@ public class MotionValidatorTests
 
         Assert.NotNull(IssueFor(result, Axis.Surge, "acceleration"));
         Assert.NotNull(IssueFor(result, Axis.Surge, "filter acceleration"));
+    }
+
+    /// <summary>The frames of the standard stimulus with one of them changed.</summary>
+    private static CommandTable Tampered(int frame, Func<Pose6, Pose6> change)
+    {
+        var table = LabSetup.Compensated(LabSetup.Intended());
+        var frames = new Pose6[table.Count];
+        for (int k = 0; k < frames.Length; k++) frames[k] = table[k];
+
+        frames[frame] = change(frames[frame]);
+        return new CommandTable(table.Motion, frames);
+    }
+
+    /// <summary>
+    /// What the command did when it was worked out between frames: one frame near
+    /// the end jumping millimetres. The filter would have smoothed it, but a
+    /// command that jumps is broken, and it is refused before it is sent.
+    /// </summary>
+    [Fact]
+    public void Refuses_a_command_that_jumps_between_frames()
+    {
+        var result = Validator().Validate(Tampered(1007, pose => pose + Pose6.Translation(0.005, 0, 0)));
+
+        Assert.False(result.Accepted);
+        Assert.NotNull(IssueFor(result, Axis.Surge, "command step"));
+    }
+
+    [Fact]
+    public void Refuses_a_command_with_one_frame_that_is_not_a_number()
+    {
+        var result = Validator().Validate(Tampered(500, pose => pose.With(Axis.Pitch, double.NaN)));
+
+        Assert.False(result.Accepted);
+        Assert.Contains(result.Rejections, issue => issue.Check == "finite");
     }
 
     [Fact]

@@ -90,7 +90,7 @@ public class PerLegCompensationTests
         var plan = LabSetup.Stimulus(headingDegrees, LabSetup.StimulusDuration);
         var motion = new CompensatedMotion(plan, PerAxis);
 
-        var platform = ThroughFilterAndLegs(motion.Command, plan.Duration);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), plan.Duration);
 
         // Measured 0.45-0.55 mm; the per-leg model accounts for about 80% of it.
         Assert.InRange(LargestRiseMillimetres(platform, plan.From.Heave), 0.35, 0.55);
@@ -105,7 +105,7 @@ public class PerLegCompensationTests
         var plan = LabSetup.Stimulus(headingDegrees, LabSetup.StimulusDuration);
         var motion = new CompensatedMotion(plan, PerLeg);
 
-        var platform = ThroughFilterAndLegs(motion.Command, plan.Duration);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), plan.Duration);
         double rise = LargestRiseMillimetres(platform, plan.From.Heave);
 
         Assert.True(rise < 0.02, $"rises {rise:F3} mm");
@@ -117,7 +117,7 @@ public class PerLegCompensationTests
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, PerLeg);
 
-        var platform = ThroughFilterAndLegs(motion.Command, plan.Duration);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), plan.Duration);
 
         for (int n = 0; n < platform.Length; n++)
         {
@@ -143,7 +143,8 @@ public class PerLegCompensationTests
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
 
-        var halfway = motion.Command(plan.T0 + motion.PlanDelay + TimeSpan.FromTicks(plan.Duration.Ticks / 2));
+        var table = motion.Table();
+        var halfway = table[(int)((motion.PlanDelay.Ticks + plan.Duration.Ticks / 2) / table.Frame.Ticks)];
 
         Assert.InRange(halfway.Roll * 1000, -0.126, -0.106);
         Assert.InRange(halfway.Pitch * 1000, -0.193, -0.173);

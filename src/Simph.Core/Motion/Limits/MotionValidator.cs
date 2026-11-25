@@ -19,10 +19,10 @@ namespace Simph.Core.Motion.Limits
     /// so this fails loudly instead.</para>
     ///
     /// <para><see cref="Validate(MotionPlan)"/> checks a plan as it stands.
-    /// <see cref="Validate(CompensatedMotion)"/> checks a compensated movement,
-    /// the plan and then the command actually sent, which leads the plan,
-    /// overshoots its end and makes the filter work harder than the plan alone
-    /// would.</para>
+    /// <see cref="Validate(CommandTable)"/> checks a compensated movement: the
+    /// plan, what the command asks of the filter, and then every frame that is
+    /// going to be sent. That command leads the plan, overshoots its end and
+    /// makes the filter work harder than the plan alone would.</para>
     /// </summary>
     public sealed class MotionValidator
     {
@@ -92,15 +92,17 @@ namespace Simph.Core.Motion.Limits
 
 
         /// <summary>
-        /// Checks a compensated movement in one call: the plan, then what is sent.
-        /// One call so that the command cannot go out with only the plan checked.
-        /// A movement whose plan passes can still fail here: at 0.13 m in 0.8 s the
-        /// plan needs 1.77 m/s^2 but its compensated command 2.70.
+        /// Checks a compensated movement in one call: the plan, then the frames
+        /// that will be sent. One call so that the command cannot go out with
+        /// only the plan checked. A movement whose plan passes can still fail
+        /// here: at 0.13 m in 0.8 s the plan needs 1.77 m/s^2 but its compensated
+        /// command 2.70.
         /// </summary>
-        public ValidationResult Validate(CompensatedMotion motion)
+        public ValidationResult Validate(CommandTable table)
         {
-            if (motion == null) throw new ArgumentNullException(nameof(motion));
+            if (table == null) throw new ArgumentNullException(nameof(table));
 
+            var motion = table.Motion;
             var plan = motion.Plan;
             var issues = new List<ValidationIssue>(Validate(plan).Issues);
 
@@ -108,6 +110,16 @@ namespace Simph.Core.Motion.Limits
             // derived from it would be NaN too.
             if (plan.From.HasNonFinite() || plan.To.HasNonFinite())
                 return new ValidationResult(issues);
+
+            for (int k = 0; k < table.Count; k++)
+            {
+                if (table[k].HasNonFinite())
+                {
+                    issues.Add(new ValidationIssue(IssueSeverity.Rejected, null, "finite",
+                        $"frame {k} of the command is not a finite pose: {table[k]}", double.NaN, double.NaN));
+                    return new ValidationResult(issues);
+                }
+            }
 
             var demand = motion.Measure();
 
@@ -123,10 +135,42 @@ namespace Simph.Core.Motion.Limits
                 Compare(issues, axis, "filter acceleration", demand.PeakAcceleration[axis],
                     motion.Model.FilterAcceleration[axis], unit + "/s2");
 
-                CheckCommandRange(issues, axis, demand, limits, unit);
+                CheckCommandRange(issues, axis, table, limits, unit);
+                CheckCommandSteps(issues, axis, table, limits, unit);
             }
 
             return new ValidationResult(issues);
+        }
+
+
+        /// <summary>
+        /// The largest step between two frames, as a multiple of what the axis's
+        /// speed limit covers in one frame. A sound command never comes near it:
+        /// the standard stimulus steps 0.47 mm at most, against 1 mm allowed on
+        /// surge. What it catches is a broken command, such as the 2-18 mm jumps
+        /// the command made when it was worked out between frames.
+        /// </summary>
+        private const double StepLimitInFramesOfTopSpeed = 2.0;
+
+        private static void CheckCommandSteps(ICollection<ValidationIssue> issues, Axis axis,
+            CommandTable table, AxisLimits limits, string unit)
+        {
+            if (double.IsInfinity(limits.MaxSpeed)) return;
+
+            double allowed = StepLimitInFramesOfTopSpeed * limits.MaxSpeed * table.Frame.TotalSeconds;
+            double largest = 0;
+            int at = 0;
+
+            for (int k = 0; k < table.Count; k++)
+            {
+                double step = Math.Abs(table[k][axis] - table[k - 1][axis]);
+                if (step > largest) { largest = step; at = k; }
+            }
+
+            if (largest > allowed)
+                issues.Add(new ValidationIssue(IssueSeverity.Rejected, axis, "command step",
+                    $"the command steps {largest:F5} {unit} in one frame at frame {at}, more than the " +
+                    $"{allowed:F5} {unit} allowed", largest, allowed));
         }
 
 
@@ -135,12 +179,12 @@ namespace Simph.Core.Motion.Limits
         /// that stops exactly at a travel limit sends a command beyond it.
         /// </summary>
         private static void CheckCommandRange(ICollection<ValidationIssue> issues, Axis axis,
-            CompensationDemand demand, AxisLimits limits, string unit)
+            CommandTable table, AxisLimits limits, string unit)
         {
             if (!limits.PositionKnown) return;
 
-            double lowest = demand.LowestCommand[axis];
-            double highest = demand.HighestCommand[axis];
+            double lowest = table.Lowest[axis];
+            double highest = table.Highest[axis];
 
             if (lowest < limits.MinPosition)
                 issues.Add(new ValidationIssue(IssueSeverity.Rejected, axis, "command position",

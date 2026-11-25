@@ -52,10 +52,13 @@ namespace Simph.MoogProbe
             Console.WriteLine($"performance counter runs at {clock.CounterFrequency} Hz");
             Console.WriteLine();
 
-            var schedule = BuildSchedule(options, out MotionPlan? outbound);
+            var schedule = BuildSchedule(options, out var movements);
 
-            if (outbound != null && !Approve(outbound, options))
-                return 2;
+            foreach (var (plan, table) in movements)
+            {
+                if (!Approve(plan, table, options))
+                    return 2;
+            }
 
             if (options.MovesThePlatform && !Consent(options))
                 return 1;
@@ -66,9 +69,14 @@ namespace Simph.MoogProbe
 
         // ---------------------------------------------------------------- plan
 
-        private static List<Segment> BuildSchedule(ProbeOptions options, out MotionPlan? outbound)
+        /// <param name="movements">
+        /// Each distinct movement in the schedule with the command table it will
+        /// send (none without --precompensate), for approval before the run.
+        /// </param>
+        private static List<Segment> BuildSchedule(ProbeOptions options,
+            out List<(MotionPlan plan, CommandTable? table)> movements)
         {
-            outbound = null;
+            movements = new List<(MotionPlan plan, CommandTable? table)>();
 
             var neutral = options.Neutral;
             var schedule = new List<Segment>();
@@ -108,38 +116,42 @@ namespace Simph.MoogProbe
 
             var away = new MotionPlan(neutral, target, commanded, Timestamp.Zero, profile);
             var back = new MotionPlan(target, neutral, commanded, Timestamp.Zero, profile);
-            outbound = away;
+
+            // Worked out once each, then checked and streamed as they are.
+            var awayTable = options.Precompensate ? new CompensatedMotion(away, options.Model).Table() : null;
+            var backTable = options.Precompensate ? new CompensatedMotion(back, options.Model).Table() : null;
+
+            movements.Add((away, awayTable));
+            movements.Add((back, backTable));
 
             for (int cycle = 0; cycle < options.Repeats; cycle++)
             {
-                schedule.Add(new Segment("out", StreamDuration(away, options), Evaluate(away, options), away));
+                schedule.Add(new Segment("out", StreamDuration(away, awayTable), Evaluate(away, awayTable), away));
                 schedule.Add(new Segment("dwell", TimeSpan.FromSeconds(options.DwellSeconds), _ => target));
-                schedule.Add(new Segment("back", StreamDuration(back, options), Evaluate(back, options), back));
+                schedule.Add(new Segment("back", StreamDuration(back, backTable), Evaluate(back, backTable), back));
                 schedule.Add(new Segment("dwell", TimeSpan.FromSeconds(options.DwellSeconds), _ => neutral));
             }
 
             return schedule;
         }
 
-        private static Func<TimeSpan, Pose6> Evaluate(MotionPlan plan, ProbeOptions options)
+        private static Func<TimeSpan, Pose6> Evaluate(MotionPlan plan, CommandTable? table)
         {
-            if (!options.Precompensate)
+            if (table == null)
                 return elapsed => plan.Evaluate(Timestamp.Zero + elapsed);
 
-            var motion = Compensated(plan, options);
-
-            return elapsed => motion.Command(Timestamp.Zero + elapsed);
+            // The send loop runs on whole frames from the segment's start, so the
+            // rounding only absorbs the nanosecond-to-tick conversion.
+            long frameTicks = table.Frame.Ticks;
+            return elapsed => table[(int)((elapsed.Ticks + frameTicks / 2) / frameTicks)];
         }
 
         /// <summary>
         /// A compensated command runs behind the plan by the drive lead, so it is
         /// streamed that much longer; the dwell after it then starts that much later.
         /// </summary>
-        private static TimeSpan StreamDuration(MotionPlan plan, ProbeOptions options) =>
-            options.Precompensate ? Compensated(plan, options).CommandDuration : plan.Duration;
-
-        private static CompensatedMotion Compensated(MotionPlan plan, ProbeOptions options) =>
-            new CompensatedMotion(plan, options.Model);
+        private static TimeSpan StreamDuration(MotionPlan plan, CommandTable? table) =>
+            table?.Duration ?? plan.Duration;
 
 
         // ------------------------------------------------------------- consent
@@ -150,7 +162,7 @@ namespace Simph.MoogProbe
         /// rejection stops the run. Warnings are printed and do not, since a
         /// warning means close to a limit, not over it.
         /// </summary>
-        private static bool Approve(MotionPlan plan, ProbeOptions options)
+        private static bool Approve(MotionPlan plan, CommandTable? table, ProbeOptions options)
         {
             var validator = new MotionValidator(options.Envelope);
 
@@ -161,18 +173,18 @@ namespace Simph.MoogProbe
 
             ValidationResult result;
 
-            if (options.Precompensate)
+            if (table != null)
             {
-                var motion = Compensated(plan, options);
-                var demand = motion.Measure();
+                var demand = table.Motion.Measure();
 
                 Console.WriteLine($"filter output speed {demand.PeakSpeed}");
                 Console.WriteLine($"filter output accel {demand.PeakAcceleration}");
-                Console.WriteLine($"command lowest      {demand.LowestCommand}");
-                Console.WriteLine($"command highest     {demand.HighestCommand}");
+                Console.WriteLine($"command frames      {table.Count}");
+                Console.WriteLine($"command lowest      {table.Lowest}");
+                Console.WriteLine($"command highest     {table.Highest}");
                 Console.WriteLine();
 
-                result = validator.Validate(motion);
+                result = validator.Validate(table);
             }
             else
             {
