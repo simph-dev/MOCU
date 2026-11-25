@@ -112,7 +112,7 @@ dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --repeat
 Compensated as the rig setup describes the platform: the trajectory filter
 inverted and the drives led on each leg, which should put the specified profile
 on the platform with the path straight and level. Then the same with the older
-pure 96 ms lag (`--drive-lag` alone sets the lead to zero; it ends the movement
+pure 96 ms lag (`--drive-lag` alone sets the direct share to zero; it ends the movement
 about 40 ms late), with the drive lag led per axis, the form measured on
 2026-11-24 (straight, but rising about 0.5 mm at peak speed), and with the
 filter alone:

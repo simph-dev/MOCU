@@ -156,7 +156,7 @@ public class TrajectoryFilterModelTests
 
     private static CompensatedMotion Compensated(MotionPlan plan, double driveLagSeconds) =>
         new CompensatedMotion(plan, new PlatformModel(PlatformModel.MoogMbE6Dof.FilterAcceleration,
-            TimeSpan.FromSeconds(driveLagSeconds), TimeSpan.Zero, legGeometry: null, Frame));
+            TimeSpan.FromSeconds(driveLagSeconds), 0.0, legGeometry: null, Frame));
 
     /// <summary>
     /// Sent through the same filter, the compensated command comes out as the plan
@@ -235,7 +235,7 @@ public class TrajectoryFilterModelTests
         var plan = LabSetup.Intended();
         var table = Compensated(plan, DriveLagSeconds).Table();
 
-        // With no drive lead to wait out, the first frame already moves.
+        // The first frame already moves.
         Assert.Equal(plan.From, table[-1]);
         Assert.Equal(plan.To, table[table.Count - 1]);
     }

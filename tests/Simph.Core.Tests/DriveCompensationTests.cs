@@ -11,33 +11,35 @@ using Xunit;
 namespace Simph.Core.Tests;
 
 /// <summary>
-/// The drives answer earlier than a pure first-order lag. Fitted on the runs of
-/// 2026-11-24: a 106.8 ms lag that answers 9.3 ms early. Compensated for a pure
-/// 96 ms lag, the platform reached 99% of the path at 916-924 ms instead of
-/// 880. These tests run commands through a simulated filter and drives built on
-/// the fitted model, to show that it reproduces that late arrival and that
-/// compensating for the lead removes it. What the real platform does with the
-/// new command is measured separately.
+/// On each leg a share of a command arrives at once and the rest follows a
+/// first-order lag. Fitted on the leg lengths of 2026-11-24 and -25: 9.2% and
+/// 107.4 ms. Compensated for a pure 96 ms lag instead, the platform reached 99%
+/// of the path at 916-924 ms instead of 880. These tests run commands through a
+/// simulated filter and drives built on the fitted model, to show that it
+/// reproduces that late arrival and that compensating for the direct share
+/// removes it, with a command that starts at T0. What the real platform does
+/// with the command is measured separately.
 /// </summary>
-public class DriveLeadCompensationTests
+public class DriveCompensationTests
 {
     /// <summary>The drives as fitted, standing in for the platform.</summary>
     private static readonly PlatformModel Fitted = new PlatformModel(
         PlatformModel.MoogMbE6Dof.FilterAcceleration,
-        TimeSpan.FromMilliseconds(106.8), TimeSpan.FromMilliseconds(9.3),
+        TimeSpan.FromMilliseconds(107.4), 0.092,
         HexapodGeometry.MoogMbE6Dof, TimeSpan.FromMilliseconds(1));
 
     /// <summary>The pure 96 ms lag the platform was compensated with until 2026-11-24.</summary>
     private static readonly PlatformModel PureLag96 = new PlatformModel(
-        Fitted.FilterAcceleration, TimeSpan.FromMilliseconds(96), TimeSpan.Zero,
+        Fitted.FilterAcceleration, TimeSpan.FromMilliseconds(96), 0.0,
         Fitted.LegGeometry, Fitted.Frame);
 
     private const int Before = 50;
     private const int After = 900;
 
     /// <summary>
-    /// The MBC's filter on every translation axis, then each leg lagged as the
-    /// machine model says, answering its lead early, then back to a pose.
+    /// The MBC's filter on every translation axis, then on each leg the direct
+    /// share of the filter's output at once and the rest through the lag, then
+    /// back to a pose.
     /// </summary>
     private static Pose6[] ThroughFilterAndLegs(Func<Timestamp, Pose6> command, TimeSpan duration, PlatformModel machine)
     {
@@ -45,7 +47,7 @@ public class DriveLeadCompensationTests
         int frames = Before + (int)duration.TotalMilliseconds + After;
         double dt = machine.Frame.TotalSeconds;
         double alpha = 1.0 - Math.Exp(-dt / machine.DriveLag.TotalSeconds);
-        double leadFrames = machine.DriveLead.TotalSeconds / dt;
+        double share = machine.DriveDirectShare;
 
         var sent = new Pose6[frames];
         for (int n = 0; n < frames; n++)
@@ -60,27 +62,19 @@ public class DriveLeadCompensationTests
             filtered[a] = new TrajectoryFilterModel(machine.FilterAcceleration[moving[a]], machine.Frame).Run(input);
         }
 
-        var wanted = new double[frames][];
-        for (int n = 0; n < frames; n++)
-            wanted[n] = geometry.LegLengths(Pose6.Translation(filtered[0][n], filtered[1][n], filtered[2][n]));
-
-        var legs = (double[])wanted[0].Clone();
+        var lagged = geometry.LegLengths(Pose6.Translation(filtered[0][0], filtered[1][0], filtered[2][0]));
+        var legs = new double[6];
         var pose = sent[0];
         var platform = new Pose6[frames];
 
         for (int n = 0; n < frames; n++)
         {
-            // Answering early: the leg follows the filter's output as it will be
-            // leadFrames later, read between frames.
-            double at = Math.Min(n + leadFrames, frames - 1);
-            int i = (int)Math.Floor(at);
-            int j = Math.Min(i + 1, frames - 1);
-            double f = at - i;
+            var wanted = geometry.LegLengths(Pose6.Translation(filtered[0][n], filtered[1][n], filtered[2][n]));
 
             for (int leg = 0; leg < 6; leg++)
             {
-                double target = wanted[i][leg] * (1 - f) + wanted[j][leg] * f;
-                legs[leg] += alpha * (target - legs[leg]);
+                lagged[leg] += alpha * (wanted[leg] - lagged[leg]);
+                legs[leg] = share * wanted[leg] + (1 - share) * lagged[leg];
             }
 
             pose = geometry.PoseFromLegLengths(legs, pose);
@@ -138,21 +132,21 @@ public class DriveLeadCompensationTests
 
     /// <summary>
     /// Measured against what a pure lag compensated for itself achieves in the
-    /// same simulation, so the test is about the lead alone. That reference is
-    /// itself 2.6-2.9 ms late at 99% for 0.9-1 s movements (about 0.05 mm of
-    /// path), from the frame-by-frame inversion, not from the drives.
+    /// same simulation, so the test is about the direct share alone. That
+    /// reference is itself 2.6-2.9 ms late at 99% for 0.9-1 s movements (about
+    /// 0.05 mm of path), from the frame-by-frame inversion, not from the drives.
     /// </summary>
     [Theory]
     [InlineData(900)]
     [InlineData(1000)]
     [InlineData(2000)]
-    public void Compensated_for_the_lead_too_the_platform_arrives_as_a_pure_lag_compensated_for_itself(int milliseconds)
+    public void Compensated_for_the_direct_share_the_platform_arrives_as_a_pure_lag_compensated_for_itself(int milliseconds)
     {
         var plan = LabSetup.Stimulus(LabSetup.WidestHeadingDegrees, TimeSpan.FromMilliseconds(milliseconds));
-        var withLead = new CompensatedMotion(plan, Fitted);
+        var withShare = new CompensatedMotion(plan, Fitted);
         var pureLag = new CompensatedMotion(plan, PureLag96);
 
-        var platform = ThroughFilterAndLegs(LabSetup.Streamed(withLead), withLead.CommandDuration, Fitted);
+        var platform = ThroughFilterAndLegs(LabSetup.Streamed(withShare), withShare.CommandDuration, Fitted);
         var reference = ThroughFilterAndLegs(LabSetup.Streamed(pureLag), pureLag.CommandDuration, PureLag96);
 
         foreach (double fraction in new[] { 0.10, 0.50, 0.90, 0.99 })
@@ -167,7 +161,7 @@ public class DriveLeadCompensationTests
     }
 
     [Fact]
-    public void Compensated_for_the_lead_the_platform_stays_on_the_path_and_level()
+    public void Compensated_for_the_direct_share_the_platform_stays_on_the_path_and_level()
     {
         var plan = LabSetup.Intended();
         var motion = new CompensatedMotion(plan, Fitted);
@@ -185,42 +179,34 @@ public class DriveLeadCompensationTests
     }
 
     /// <summary>
-    /// 1009 frames for a 1 s plan at 1 ms a frame, as the probe sent on
-    /// 2026-11-25 (sent.csv: 9 frames at the start point, 999 moving, 1 on the
-    /// target): the plan's 1000 frames, held back by the 9 of the drive lead.
+    /// The command starts with the plan and lasts as long: 1000 frames for a
+    /// 1 s plan at 1 ms a frame, the first already moving, the last on the target.
     /// </summary>
     [Fact]
-    public void The_command_waits_out_the_lead_and_ends_exactly_on_the_target()
+    public void The_command_starts_at_t0_and_ends_exactly_on_the_target()
     {
         var plan = LabSetup.Intended();
-        var motion = new CompensatedMotion(plan, Fitted);
-        var table = motion.Table();
+        var table = new CompensatedMotion(plan, Fitted).Table();
 
-        // 9.3 ms in whole frames.
-        Assert.Equal(TimeSpan.FromMilliseconds(9), motion.PlanDelay);
-        Assert.Equal(1009, table.Count);
-
-        for (int k = 0; k < 9; k++)
-            Assert.Equal(plan.From, table[k]);
-
-        Assert.NotEqual(plan.From, table[9]);
-        Assert.NotEqual(plan.To, table[1007]);
-        Assert.Equal(plan.To, table[1008]);
+        Assert.Equal(1000, table.Count);
+        Assert.Equal(plan.From, table[-1]);
+        Assert.NotEqual(plan.From, table[0]);
+        Assert.NotEqual(plan.To, table[998]);
+        Assert.Equal(plan.To, table[999]);
     }
 
     /// <summary>
     /// The profile is cut off with a little speed left, so the command leaves rest
-    /// with a step of about 0.35 mm, as it always has. Nothing larger: in
-    /// particular no spike on the frame before the delayed plan starts.
+    /// and arrives with a step of a fraction of a millimetre, as it always has.
+    /// Nothing larger.
     /// </summary>
     [Theory]
     [InlineData(0.0)]
-    [InlineData(9.3)]
-    public void The_command_never_steps_by_more_than_a_millimetre_between_frames(double leadMilliseconds)
+    [InlineData(0.092)]
+    public void The_command_never_steps_by_more_than_a_millimetre_between_frames(double share)
     {
         var plan = LabSetup.Intended();
-        var model = new PlatformModel(Fitted.FilterAcceleration, Fitted.DriveLag,
-            TimeSpan.FromMilliseconds(leadMilliseconds), Fitted.LegGeometry, Fitted.Frame);
+        var model = new PlatformModel(Fitted.FilterAcceleration, Fitted.DriveLag, share, Fitted.LegGeometry, Fitted.Frame);
         var table = new CompensatedMotion(plan, model).Table();
 
         var previous = table[-5];
@@ -237,14 +223,15 @@ public class DriveLeadCompensationTests
         }
     }
 
-    [Fact]
-    public void Leading_by_more_than_the_lag_is_refused()
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(1.0)]
+    [InlineData(double.NaN)]
+    public void A_direct_share_outside_zero_to_one_is_refused(double share)
     {
         var model = PlatformModel.MoogMbE6Dof;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new PlatformModel(model.FilterAcceleration,
-            TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(11), model.LegGeometry, model.Frame));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PlatformModel(model.FilterAcceleration,
-            model.DriveLag, TimeSpan.FromMilliseconds(-1), model.LegGeometry, model.Frame));
+            model.DriveLag, share, model.LegGeometry, model.Frame));
     }
 }

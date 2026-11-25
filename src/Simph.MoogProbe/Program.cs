@@ -146,10 +146,7 @@ namespace Simph.MoogProbe
             return elapsed => table[(int)((elapsed.Ticks + frameTicks / 2) / frameTicks)];
         }
 
-        /// <summary>
-        /// A compensated command runs behind the plan by the drive lead, so it is
-        /// streamed that much longer; the dwell after it then starts that much later.
-        /// </summary>
+        /// <summary>A compensated movement is streamed for as long as its table.</summary>
         private static TimeSpan StreamDuration(MotionPlan plan, CommandTable? table) =>
             table?.Duration ?? plan.Duration;
 

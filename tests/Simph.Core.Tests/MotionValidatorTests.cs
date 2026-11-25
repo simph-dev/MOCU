@@ -280,7 +280,7 @@ public class MotionValidatorTests
     [Fact]
     public void Refuses_a_command_that_jumps_between_frames()
     {
-        var result = Validator().Validate(Tampered(1007, pose => pose + Pose6.Translation(0.005, 0, 0)));
+        var result = Validator().Validate(Tampered(998, pose => pose + Pose6.Translation(0.005, 0, 0)));
 
         Assert.False(result.Accepted);
         Assert.NotNull(IssueFor(result, Axis.Surge, "command step"));

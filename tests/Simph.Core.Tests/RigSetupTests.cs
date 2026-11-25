@@ -27,7 +27,7 @@ public class RigSetupTests
 
         Assert.Equal(model.FilterAcceleration, setup.Model.FilterAcceleration);
         Assert.Equal(model.DriveLag, setup.Model.DriveLag);
-        Assert.Equal(model.DriveLead, setup.Model.DriveLead);
+        Assert.Equal(model.DriveDirectShare, setup.Model.DriveDirectShare);
         Assert.NotNull(setup.Model.LegGeometry);
         Assert.Equal(Pose6.Translation(0, 0, -0.22), setup.Neutral);
         Assert.Equal("192.168.2.1:16384", setup.Mbc.ToString());
@@ -83,12 +83,12 @@ public class RigSetupTests
     }
 
     [Fact]
-    public void A_setup_without_a_drive_lead_describes_a_pure_lag()
+    public void A_setup_without_a_direct_share_describes_a_pure_lag()
     {
-        string json = File.ReadAllText(RigSetup.DefaultPath).Replace("\"driveLeadMilliseconds\": 9.3,", "");
+        string json = File.ReadAllText(RigSetup.DefaultPath).Replace("\"driveDirectShare\": 0.092,", "");
 
-        Assert.DoesNotContain("\"driveLeadMilliseconds\"", json);
-        Assert.Equal(TimeSpan.Zero, RigSetup.Parse(json).Model.DriveLead);
+        Assert.DoesNotContain("\"driveDirectShare\"", json);
+        Assert.Equal(0.0, RigSetup.Parse(json).Model.DriveDirectShare);
     }
 
     [Fact]

@@ -18,9 +18,9 @@ namespace Simph.Core.Platform
         /// the MBC's configuration exactly, or the compensation is wrong.
         /// </param>
         /// <param name="driveLag">Time constant of the drives' first-order lag. Zero leaves the drives uncompensated.</param>
-        /// <param name="driveLead">
-        /// How far ahead of that lag the drives answer. Zero is a pure first-order
-        /// lag; see <see cref="DriveLead"/>.
+        /// <param name="driveDirectShare">
+        /// The share of a command that reaches a leg at once, 0 to below 1. Zero is
+        /// a pure first-order lag; see <see cref="DriveDirectShare"/>.
         /// </param>
         /// <param name="legGeometry">
         /// When given, the drive lag acts on each leg's length, which is where the
@@ -28,11 +28,11 @@ namespace Simph.Core.Platform
         /// rising about half a millimetre on a fast diagonal movement.
         /// </param>
         /// <param name="frame">One MBC frame, 1 ms.</param>
-        public PlatformModel(Pose6 filterAcceleration, TimeSpan driveLag, TimeSpan driveLead, HexapodGeometry legGeometry, TimeSpan frame)
+        public PlatformModel(Pose6 filterAcceleration, TimeSpan driveLag, double driveDirectShare, HexapodGeometry legGeometry, TimeSpan frame)
         {
             if (driveLag < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(driveLag), driveLag, "Cannot be negative.");
-            if (driveLead < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(driveLead), driveLead, "Cannot be negative.");
-            if (driveLead > driveLag) throw new ArgumentOutOfRangeException(nameof(driveLead), driveLead, "Cannot exceed the drive lag.");
+            if (!(driveDirectShare >= 0 && driveDirectShare < 1))
+                throw new ArgumentOutOfRangeException(nameof(driveDirectShare), driveDirectShare, "Must be from 0 to below 1.");
             if (frame <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(frame), frame, "Must be positive.");
 
             foreach (var axis in Axes.All)
@@ -41,7 +41,7 @@ namespace Simph.Core.Platform
 
             FilterAcceleration = filterAcceleration;
             DriveLag = driveLag;
-            DriveLead = driveLead;
+            DriveDirectShare = driveDirectShare;
             LegGeometry = legGeometry;
             Frame = frame;
         }
@@ -50,30 +50,33 @@ namespace Simph.Core.Platform
         public TimeSpan DriveLag { get; }
 
         /// <summary>
-        /// The drives answer a leg's command like the first-order lag
-        /// <see cref="DriveLag"/>, but this much earlier: exp(+lead s) / (1 + lag s).
-        /// Put another way, about lead / lag of a command (9%) shows up at once
-        /// and the rest follows the lag. Fitted on the 17 movement runs of
-        /// 2026-11-24, one run at a time: lag 105.7-107.2 ms, lead 8.3-13 ms,
-        /// whatever the duration (0.9-2 s), distance, heading or compensation. A
-        /// pure 96 ms lag has the same mean delay, so it puts the middle of a
-        /// movement on time but not its end, which arrived 40 ms late. The lead
-        /// does not describe the first 10 ms of a movement, where the platform
-        /// does not move yet; that costs microns. Measured as a compensation on
-        /// 2026-11-24, alternating with the pure 96 ms lag, 12 movements each:
-        /// 99% of the path at 881-893 ms against 916-925 (plan 880), 90% at
-        /// 712-714 (plan 713).
+        /// The share of a leg's command that shows up at once; the rest follows
+        /// the first-order lag <see cref="DriveLag"/>:
+        /// (1 + share lag s) / (1 + lag s). Fitted on the leg lengths of 38
+        /// movement runs over 2026-11-24 and -25: lag 107.4 ms, share 0.092, the
+        /// same on each day alone (107.3 / 0.093 and 107.4 / 0.091) and at every
+        /// heading and duration tried. A pure lag has the same mean delay, so it
+        /// puts the middle of a movement on time but not its end, which arrived
+        /// 40 ms late. Why part of a command arrives at once is not known yet.
+        /// The model does not describe the first 10 ms of a movement, where the
+        /// platform does not move yet; that costs microns. It replaced a lag of
+        /// 106.8 ms answering 9.3 ms early, which fits as well but cannot be
+        /// inverted without holding the command back 9 frames. Compensated both
+        /// ways on 2026-11-25, alternating, 12 movements each: the same platform
+        /// to within a millisecond and a few microradians (99% of the path at
+        /// 888-893 ms against 889-893, plan 880; bend 0.08-0.11 mm both).
         /// </summary>
-        public TimeSpan DriveLead { get; }
+        public double DriveDirectShare { get; }
 
         public HexapodGeometry LegGeometry { get; }
         public TimeSpan Frame { get; }
 
         /// <summary>
         /// The lab's MB-E-6DOF/12/1000. ACC_LIM from motionbase.xml: 2.0 m/s^2 on
-        /// surge, sway and heave, 1.75 rad/s^2 on the rotations. Drives: a 106.8 ms
-        /// lag answering 9.3 ms early, see <see cref="DriveLead"/>; it replaced the
-        /// pure 96 ms lag measured on surge and sway on 2026-11-02. Per leg because
+        /// surge, sway and heave, 1.75 rad/s^2 on the rotations. Drives: a 107.4 ms
+        /// lag with 9.2% arriving at once, see <see cref="DriveDirectShare"/>; the
+        /// first model was a pure 96 ms lag measured on surge and sway on
+        /// 2026-11-02. Per leg because
         /// the platform, compensated per axis on 2026-11-24, rose 0.45-0.55 mm at
         /// peak speed, and a per-leg lag through this geometry predicts that rise
         /// at every heading; compensated per leg on the same day it rose
@@ -82,8 +85,8 @@ namespace Simph.Core.Platform
         /// </summary>
         public static PlatformModel MoogMbE6Dof { get; } = new PlatformModel(
             new Pose6(roll: 1.75, pitch: 1.75, yaw: 1.75, surge: 2.0, sway: 2.0, heave: 2.0),
-            TimeSpan.FromMilliseconds(106.8),
-            TimeSpan.FromMilliseconds(9.3),
+            TimeSpan.FromMilliseconds(107.4),
+            0.092,
             HexapodGeometry.MoogMbE6Dof,
             TimeSpan.FromMilliseconds(1));
     }

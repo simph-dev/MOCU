@@ -19,13 +19,13 @@
     // motionbase.xml, DOF Trajectory Filter: ACC_LIM per axis.
     "filterAcceleration": { "surge": 2.0, "sway": 2.0, "heave": 2.0, "roll": 1.75, "pitch": 1.75, "yaw": 1.75 },
 
-    // Each leg answers like a first-order lag of driveLagMilliseconds, but
-    // driveLeadMilliseconds early. Fitted on the movement runs of 2026-11-24;
-    // compensated this way the platform reached 99% of the path at 881-893 ms
-    // (plan 880) instead of 916-925 with the pure 96 ms lag measured on
-    // 2026-11-02. Leaving the lead out describes a pure lag.
-    "driveLagMilliseconds": 106.8,
-    "driveLeadMilliseconds": 9.3,
+    // On each leg driveDirectShare of a command arrives at once and the rest
+    // follows a first-order lag of driveLagMilliseconds. Fitted on the leg
+    // lengths of the movement runs of 2026-11-24 and -25. A pure lag (the 96 ms
+    // of 2026-11-02) ends the movement about 40 ms late. Leaving the share out
+    // describes a pure lag.
+    "driveLagMilliseconds": 107.4,
+    "driveDirectShare": 0.092,
 
     // "legs": the lag acts on each leg's length (measured 2026-11-24: compensating
     // per axis left the platform rising about 0.5 mm at peak speed).

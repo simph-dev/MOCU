@@ -21,14 +21,14 @@ public class PerLegCompensationTests
 {
     /// <summary>
     /// The pure 96 ms lag these measurements were made with, so the tests are
-    /// about legs against axes alone; the lead has its own tests.
+    /// about legs against axes alone; the share that arrives at once has its own tests.
     /// </summary>
     private static readonly PlatformModel PerLeg = new PlatformModel(
-        PlatformModel.MoogMbE6Dof.FilterAcceleration, TimeSpan.FromMilliseconds(96), TimeSpan.Zero,
+        PlatformModel.MoogMbE6Dof.FilterAcceleration, TimeSpan.FromMilliseconds(96), 0.0,
         HexapodGeometry.MoogMbE6Dof, PlatformModel.MoogMbE6Dof.Frame);
 
     private static readonly PlatformModel PerAxis = new PlatformModel(
-        PerLeg.FilterAcceleration, PerLeg.DriveLag, PerLeg.DriveLead, legGeometry: null, PerLeg.Frame);
+        PerLeg.FilterAcceleration, PerLeg.DriveLag, PerLeg.DriveDirectShare, legGeometry: null, PerLeg.Frame);
 
     private const int Before = 50;
     private const int After = 600;
@@ -144,7 +144,7 @@ public class PerLegCompensationTests
         var motion = new CompensatedMotion(plan, PlatformModel.MoogMbE6Dof);
 
         var table = motion.Table();
-        var halfway = table[(int)((motion.PlanDelay.Ticks + plan.Duration.Ticks / 2) / table.Frame.Ticks)];
+        var halfway = table[(int)(plan.Duration.Ticks / 2 / table.Frame.Ticks)];
 
         Assert.InRange(halfway.Roll * 1000, -0.126, -0.106);
         Assert.InRange(halfway.Pitch * 1000, -0.193, -0.173);
