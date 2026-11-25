@@ -151,7 +151,9 @@ Recorder > Filter Chain in the MBC's configuration; it applies at once.
 Each run writes a folder under `probe-logs/`:
 
 - `sent.csv` — one row per packet: slot, sequence, due, sent, lateness, gap, pose
-- `received.csv` — one row per reply: MBC counter, arrival, gap, state, fault words, pose
+- `received.csv` — one row per reply: MBC counter, arrival, gap, state, fault words,
+  pose (surge, sway, heave, then roll, pitch, yaw; logs up to 2026-11-24 17:51
+  have no rotations)
 - `summary.txt` — the same figures printed to the console, with the movement table
 
 The first send is always a millisecond or two late: it carries the JIT of the

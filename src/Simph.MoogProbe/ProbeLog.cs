@@ -98,7 +98,11 @@ namespace Simph.MoogProbe
         private void WriteReceived(IReadOnlyList<ReceivedRecord> received, long origin)
         {
             using var writer = new StreamWriter(Path.Combine(_directory, "received.csv"));
-            writer.WriteLine("mbc_count,mbc_step,received_s,gap_us,state,status_word,declared_echo,io,fault1,fault2,fault3,bytes,surge,sway,heave");
+            // Rotations come last, after the translations, so that every column
+            // of the older logs, which have none, keeps its position and one
+            // reader handles both. They are needed to check the tilt: a leg
+            // model fitted without them takes the platform as level.
+            writer.WriteLine("mbc_count,mbc_step,received_s,gap_us,state,status_word,declared_echo,io,fault1,fault2,fault3,bytes,surge,sway,heave,roll,pitch,yaw");
 
             long previous = 0;
             uint previousCount = 0;
@@ -124,7 +128,10 @@ namespace Simph.MoogProbe
                     N(r.Length),
                     r.HasFeedback ? F(r.Feedback.Surge, 7) : "",
                     r.HasFeedback ? F(r.Feedback.Sway, 7) : "",
-                    r.HasFeedback ? F(r.Feedback.Heave, 7) : ""));
+                    r.HasFeedback ? F(r.Feedback.Heave, 7) : "",
+                    r.HasFeedback ? F(r.Feedback.Roll, 8) : "",
+                    r.HasFeedback ? F(r.Feedback.Pitch, 8) : "",
+                    r.HasFeedback ? F(r.Feedback.Yaw, 8) : ""));
             }
         }
 
