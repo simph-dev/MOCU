@@ -46,6 +46,7 @@ namespace Simph.MoogProbe
         private IPEndPoint? _hostGiven, _mbcGiven;
         private double? _neutralHeaveGiven;
         private double? _driveLagGivenMilliseconds;
+        private double? _driveLeadGivenMilliseconds;
         private string? _lagActsOnGiven;
 
         public Phase Phase { get; private set; } = Phase.Listen;
@@ -113,6 +114,8 @@ namespace Simph.MoogProbe
         /// <summary>The drive lag the compensation leads by; zero compensates the filter only.</summary>
         public double DriveLagMilliseconds => Model.DriveLag.TotalMilliseconds;
 
+        public double DriveLeadMilliseconds => Model.DriveLead.TotalMilliseconds;
+
         public string DriveLagActsOn => Model.LegGeometry != null ? "legs" : "axes";
 
         /// <summary>Required before anything that moves the platform.</summary>
@@ -150,12 +153,15 @@ namespace Simph.MoogProbe
             (Precompensate ? "-precomp" : "") +
             (Precompensate && DriveLagMilliseconds > 0
                 ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + DriveLagActsOn
+                : "") +
+            (Precompensate && DriveLeadMilliseconds > 0
+                ? "-lead" + DriveLeadMilliseconds.ToString("F1", CultureInfo.InvariantCulture)
                 : "");
 
         public string Header =>
             $"phase {Phase}, sending {Rate} packets/s, declaring {StatusResponseWord.Describe(StatusWord)}, " +
             $"{CopiesPerCommand} cop{(CopiesPerCommand == 1 ? "y" : "ies")} per command" +
-            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F0} ms compensated on the {DriveLagActsOn}" : "") +
+            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F1} ms with lead {DriveLeadMilliseconds:F1} ms compensated on the {DriveLagActsOn}" : "") +
             Environment.NewLine +
             $"host {Host}, mbc {Mbc}, setup {SetupPath}";
 
@@ -172,6 +178,13 @@ namespace Simph.MoogProbe
 
             var model = setup.Model;
             var lag = _driveLagGivenMilliseconds.HasValue ? TimeSpan.FromMilliseconds(_driveLagGivenMilliseconds.Value) : model.DriveLag;
+
+            // A lag given alone describes a pure lag: keeping the setup's lead
+            // with someone else's lag would mix two models. "--drive-lag 0"
+            // (filter only) needs the lead at zero as well.
+            var lead = _driveLeadGivenMilliseconds.HasValue ? TimeSpan.FromMilliseconds(_driveLeadGivenMilliseconds.Value)
+                : _driveLagGivenMilliseconds.HasValue ? TimeSpan.Zero
+                : model.DriveLead;
             var geometry = _lagActsOnGiven switch
             {
                 "axes" => null,
@@ -179,7 +192,7 @@ namespace Simph.MoogProbe
                 _ => model.LegGeometry
             };
 
-            Model = new PlatformModel(model.FilterAcceleration, lag, geometry, model.Frame);
+            Model = new PlatformModel(model.FilterAcceleration, lag, lead, geometry, model.Frame);
         }
 
 
@@ -221,6 +234,7 @@ namespace Simph.MoogProbe
                         case "--dither-hz": options.DitherHz = Number(value); break;
                         case "--drive-lag": options._driveLagGivenMilliseconds = Number(value); break;
                         case "--lag-in": options._lagActsOnGiven = ParseLagActsOn(value); break;
+                        case "--drive-lead": options._driveLeadGivenMilliseconds = Number(value); break;
                         case "--setup": options.SetupPath = value; break;
                         case "--dwell": options.DwellSeconds = Number(value); break;
                         case "--repeats": options.Repeats = int.Parse(value, CultureInfo.InvariantCulture); break;
@@ -292,9 +306,16 @@ namespace Simph.MoogProbe
                 return false;
             }
 
-            if ((options._driveLagGivenMilliseconds.HasValue || options._lagActsOnGiven != null) && !options.Precompensate)
+            if (options._driveLeadGivenMilliseconds is double lead && (lead < 0 || lead > (options._driveLagGivenMilliseconds ?? MaxDriveLagMilliseconds)))
             {
-                error = "--drive-lag and --lag-in only mean something with --precompensate.";
+                error = "--drive-lead must be between 0 and the drive lag.";
+                return false;
+            }
+
+            if ((options._driveLagGivenMilliseconds.HasValue || options._driveLeadGivenMilliseconds.HasValue ||
+                 options._lagActsOnGiven != null) && !options.Precompensate)
+            {
+                error = "--drive-lag, --drive-lead and --lag-in only mean something with --precompensate.";
                 return false;
             }
 
@@ -360,6 +381,9 @@ namespace Simph.MoogProbe
                              the platform itself follows the plan
   --drive-lag MS             with --precompensate, override the setup's drive
                              lag; 0 compensates the filter only
+  --drive-lead MS            with --precompensate, how much earlier than the lag
+                             the drives answer (setup: 0; 0 also when only
+                             --drive-lag is given)
   --lag-in legs|axes         with --precompensate, override where the drive lag
                              acts (setup: legs)
   --setup FILE               rig setup (default rig-setup.json next to the exe,

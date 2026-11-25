@@ -22,7 +22,7 @@ public class PerLegCompensationTests
     private static readonly PlatformModel PerLeg = PlatformModel.MoogMbE6Dof;
 
     private static readonly PlatformModel PerAxis = new PlatformModel(
-        PerLeg.FilterAcceleration, PerLeg.DriveLag, legGeometry: null, PerLeg.Frame);
+        PerLeg.FilterAcceleration, PerLeg.DriveLag, PerLeg.DriveLead, legGeometry: null, PerLeg.Frame);
 
     private const int Before = 50;
     private const int After = 600;

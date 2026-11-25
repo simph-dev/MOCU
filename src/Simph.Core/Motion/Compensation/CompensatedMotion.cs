@@ -11,12 +11,16 @@ namespace Simph.Core.Motion.Compensation
     /// so that the platform, rather than the command, follows the plan.
     ///
     /// Two stages are inverted, last one first. After the filter sit the drives,
-    /// a first-order lag of about 96 ms on each leg, so the filter's output has to
-    /// run ahead of the plan by that lag, worked out on the leg lengths. The filter
-    /// then needs its input ahead of that by the lead its law demands on each
-    /// axis, see <see cref="TrajectoryFilterModel"/>.
+    /// a first-order lag on each leg, so the filter's output has to run ahead of
+    /// the plan by that lag, worked out on the leg lengths. The drives answer
+    /// <see cref="PlatformModel.DriveLead"/> earlier than a pure lag would, so
+    /// that output is then held back by the same amount: the whole compensated
+    /// command runs that much late and lasts that much longer than the plan,
+    /// see <see cref="CommandDuration"/>. The filter then needs its input ahead
+    /// of the output by the lead its law demands on each axis, see
+    /// <see cref="TrajectoryFilterModel"/>.
     ///
-    /// Both leads vanish at rest, so the command starts and ends where the plan
+    /// The leads vanish at rest, so the command starts and ends where the plan
     /// does. In between it leads by up to a few centimetres, and inverting the lag
     /// makes it overshoot the end point by about a millimetre.
     /// </summary>
@@ -31,6 +35,7 @@ namespace Simph.Core.Motion.Compensation
         private readonly TimeSpan _halfFrame;
         private readonly double _dt;
         private readonly double _lagLeadSeconds;
+        private readonly TimeSpan _planDelay;
 
         public CompensatedMotion(MotionPlan plan, PlatformModel model)
         {
@@ -51,6 +56,15 @@ namespace Simph.Core.Motion.Compensation
             var driveLag = model.DriveLag;
             double alpha = driveLag > TimeSpan.Zero ? 1.0 - Math.Exp(-_dt / driveLag.TotalSeconds) : 1.0;
             _lagLeadSeconds = _dt * (1.0 - alpha) / alpha;
+
+            // The drive lead is taken in whole frames, so that the plan is still
+            // sampled on the frame grid: shifted by a fraction of a frame, the
+            // frame that straddles the plan's start would pick up part of the
+            // step the cut-off profile begins with, and send it as a spike of a
+            // few millimetres. The fit spreads over 8.3-13 ms, so 9.3 sent as 9
+            // costs nothing that can be measured.
+            long leadFrames = (long)Math.Round(model.DriveLead.TotalSeconds / _dt);
+            _planDelay = TimeSpan.FromTicks(_frame.Ticks * leadFrames);
         }
 
         public MotionPlan Plan => _plan;
@@ -59,11 +73,31 @@ namespace Simph.Core.Motion.Compensation
 
         public TimeSpan Frame => _frame;
 
+        /// <summary>
+        /// How far the command runs behind the plan: the drive lead, in whole
+        /// frames.
+        /// </summary>
+        public TimeSpan PlanDelay => _planDelay;
+
+        /// <summary>
+        /// How long the command has to be streamed from the plan's start: the
+        /// plan's duration plus <see cref="PlanDelay"/>. Cut at the plan's own
+        /// end, its last few milliseconds would be replaced by a step.
+        /// </summary>
+        public TimeSpan CommandDuration => _plan.Duration + _planDelay;
+
         /// <summary>What the filter's output should be at this instant.</summary>
-        public Pose6 FilterOutput(Timestamp now) =>
-            _model.LegGeometry == null || _lagLeadSeconds == 0
-                ? _plan.Evaluate(now) + _plan.Velocity(now + _halfFrame) * _lagLeadSeconds
-                : LegLeadOutput(now);
+        public Pose6 FilterOutput(Timestamp now)
+        {
+            // The drives answer as exp(+lead s) / (1 + lag s); the inverse is
+            // (1 + lag s) exp(-lead s): the lag's lead below, taken on the plan as
+            // it was the drive lead ago.
+            var planTime = now - _planDelay;
+
+            return _model.LegGeometry == null || _lagLeadSeconds == 0
+                ? _plan.Evaluate(planTime) + _plan.Velocity(planTime + _halfFrame) * _lagLeadSeconds
+                : LegLeadOutput(planTime);
+        }
 
         /// <summary>
         /// The same lead, on the leg lengths: each leg is put ahead of where the
@@ -72,11 +106,11 @@ namespace Simph.Core.Motion.Compensation
         /// the frame by differencing; the per-leg tests send the result through a
         /// simulated filter and legs and bound what that costs.
         /// </summary>
-        private Pose6 LegLeadOutput(Timestamp now)
+        private Pose6 LegLeadOutput(Timestamp planTime)
         {
             var geometry = _model.LegGeometry;
-            var here = _plan.Evaluate(now);
-            var next = _plan.Evaluate(now + _frame);
+            var here = _plan.Evaluate(planTime);
+            var next = _plan.Evaluate(planTime + _frame);
 
             double[] legsHere = geometry.LegLengths(here);
             double[] legsNext = geometry.LegLengths(next);
@@ -96,7 +130,10 @@ namespace Simph.Core.Motion.Compensation
             // multiply the 1e-7 error of the erf approximation by the lag gain and
             // by 1 / dt. Per leg there is no analytic form, so it is differenced.
             if (_model.LegGeometry == null || _lagLeadSeconds == 0)
-                return _plan.Velocity(now + _halfFrame) + _plan.Acceleration(now + _frame) * _lagLeadSeconds;
+            {
+                var planTime = now - _planDelay;
+                return _plan.Velocity(planTime + _halfFrame) + _plan.Acceleration(planTime + _frame) * _lagLeadSeconds;
+            }
 
             return (FilterOutput(now + _frame) - FilterOutput(now)) / _dt;
         }
@@ -104,6 +141,20 @@ namespace Simph.Core.Motion.Compensation
         /// <summary>What to send at this instant.</summary>
         public Pose6 Command(Timestamp now)
         {
+            // The profile is cut off at both ends with a little speed left, so the
+            // lag's lead jumps by about 0.35 mm on the first and the last frame.
+            // Seen as a speed, that jump makes the filter's lead a one-frame
+            // spike of about 25 mm on the frame next to it. So outside the
+            // delayed plan, and on its last frame, the command is simply the end
+            // point. Until 2026-11-24 the spike at the end was sent on every
+            // compensated movement (in sent.csv: surge 125.3, 99.9, 125.0 mm);
+            // the filter's acceleration limit kept it to microns at the platform.
+            if (now < _plan.T0 + _planDelay)
+                return _plan.From;
+
+            if (now + _frame >= _plan.End + _planDelay)
+                return _plan.To;
+
             var output = FilterOutput(now);
             var velocity = FilterOutputVelocity(now);
             var command = output;
@@ -125,7 +176,8 @@ namespace Simph.Core.Motion.Compensation
             var lowest = _plan.From;
             var highest = _plan.From;
 
-            int frames = (int)Math.Ceiling(_plan.Duration.TotalSeconds / _dt);
+            int frames = (int)Math.Ceiling(CommandDuration.TotalSeconds / _dt);
+            int leadFrames = (int)(_planDelay.Ticks / _frame.Ticks);
 
             var before = FilterOutput(_plan.T0 - _frame);
             var at = FilterOutput(_plan.T0);
@@ -140,7 +192,7 @@ namespace Simph.Core.Motion.Compensation
                 // the frames next to them carry a small step. The filter's own
                 // clamp takes that up within a few milliseconds; it says nothing
                 // about whether the movement itself can be followed.
-                bool insideTheMovement = n >= EdgeFrames && n <= frames - EdgeFrames;
+                bool insideTheMovement = n >= leadFrames + EdgeFrames && n <= frames - EdgeFrames;
 
                 foreach (var axis in Axes.All)
                 {

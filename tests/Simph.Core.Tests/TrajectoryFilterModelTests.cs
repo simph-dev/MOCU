@@ -156,7 +156,7 @@ public class TrajectoryFilterModelTests
 
     private static CompensatedMotion Compensated(MotionPlan plan, double driveLagSeconds) =>
         new CompensatedMotion(plan, new PlatformModel(PlatformModel.MoogMbE6Dof.FilterAcceleration,
-            TimeSpan.FromSeconds(driveLagSeconds), legGeometry: null, Frame));
+            TimeSpan.FromSeconds(driveLagSeconds), TimeSpan.Zero, legGeometry: null, Frame));
 
     /// <summary>
     /// Sent through the same filter, the compensated command comes out as the plan

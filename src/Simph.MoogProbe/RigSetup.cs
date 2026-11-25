@@ -51,6 +51,12 @@ namespace Simph.MoogProbe
             var frame = TimeSpan.FromMilliseconds(1);
             var driveLag = TimeSpan.FromMilliseconds(Number(model, "driveLagMilliseconds"));
 
+            // Optional, unlike the rest: a setup written before the lead was
+            // fitted describes a pure lag, and that is what zero means.
+            var driveLead = model.TryGetProperty("driveLeadMilliseconds", out _)
+                ? TimeSpan.FromMilliseconds(Number(model, "driveLeadMilliseconds"))
+                : TimeSpan.Zero;
+
             HexapodGeometry? geometry = Text(model, "driveLagActsOn") switch
             {
                 "legs" => ReadGeometry(Field(model, "geometry")),
@@ -65,7 +71,7 @@ namespace Simph.MoogProbe
                 ProbeOptions.ParseEndPoint(Text(root, "host"), 16386),
                 ProbeOptions.ParseEndPoint(Text(root, "mbc"), 16384),
                 ReadPose(Field(root, "neutral")),
-                new PlatformModel(ReadPose(Field(model, "filterAcceleration")), driveLag, geometry, frame),
+                new PlatformModel(ReadPose(Field(model, "filterAcceleration")), driveLag, driveLead, geometry, frame),
                 new MotionEnvelope(
                     roll: Rotation(Field(limits, "roll")),
                     pitch: Rotation(Field(limits, "pitch")),

@@ -112,9 +112,9 @@ namespace Simph.MoogProbe
 
             for (int cycle = 0; cycle < options.Repeats; cycle++)
             {
-                schedule.Add(new Segment("out", commanded, Evaluate(away, options), away));
+                schedule.Add(new Segment("out", StreamDuration(away, options), Evaluate(away, options), away));
                 schedule.Add(new Segment("dwell", TimeSpan.FromSeconds(options.DwellSeconds), _ => target));
-                schedule.Add(new Segment("back", commanded, Evaluate(back, options), back));
+                schedule.Add(new Segment("back", StreamDuration(back, options), Evaluate(back, options), back));
                 schedule.Add(new Segment("dwell", TimeSpan.FromSeconds(options.DwellSeconds), _ => neutral));
             }
 
@@ -130,6 +130,13 @@ namespace Simph.MoogProbe
 
             return elapsed => motion.Command(Timestamp.Zero + elapsed);
         }
+
+        /// <summary>
+        /// A compensated command runs behind the plan by the drive lead, so it is
+        /// streamed that much longer; the dwell after it then starts that much later.
+        /// </summary>
+        private static TimeSpan StreamDuration(MotionPlan plan, ProbeOptions options) =>
+            options.Precompensate ? Compensated(plan, options).CommandDuration : plan.Duration;
 
         private static CompensatedMotion Compensated(MotionPlan plan, ProbeOptions options) =>
             new CompensatedMotion(plan, options.Model);
