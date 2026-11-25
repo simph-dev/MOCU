@@ -21,8 +21,12 @@ namespace Simph.Core.Motion.Compensation
     /// <see cref="TrajectoryFilterModel"/>.
     ///
     /// The leads vanish at rest, so the command starts and ends where the plan
-    /// does. In between it leads by up to a few centimetres, and inverting the lag
-    /// makes it overshoot the end point by about a millimetre.
+    /// does. In between it leads by up to 58 mm, and inverting the lag makes it
+    /// overshoot the end point by 2.1 mm (16 degrees, 13 cm, 1 s; 3.4 mm at 0.9 s).
+    ///
+    /// Correct only at times on the plan's frame grid (T0 plus whole frames):
+    /// between frames the end guard misses a frame, and a quarter to three
+    /// quarters of a frame off the grid the command steps 2 to 18 mm in one frame.
     /// </summary>
     public sealed class CompensatedMotion
     {
