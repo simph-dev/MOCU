@@ -28,7 +28,6 @@ namespace Simph.Core.Motion.Limits
 
 
         private const double Deg = Math.PI / 180.0;
-        private const double Unknown = double.PositiveInfinity;
 
         /// <summary>
         /// What the lab allows the Moog MB-E-6DOF/12/1000 to do. A choice of the
@@ -45,12 +44,15 @@ namespace Simph.Core.Motion.Limits
         /// VEL_LIM entries (1.27 m/s on X and Y): surge and sway 0.5 m/s, heave
         /// 0.3 m/s, roll and pitch 30 deg/s, yaw 40 deg/s.</para>
         ///
-        /// <para><b>Position</b> bounds are the data sheet's excursions, except on
-        /// heave, which is left unestablished: the experiments park at Heave =
-        /// -0.22 m while the sheet gives +/-0.178 m, so the two are plainly
-        /// measured from different origins and the offset is not recorded
-        /// anywhere we can read. Until that is pinned down against the MBC,
-        /// claiming a heave bound would only produce false rejections.</para>
+        /// <para><b>Position</b> bounds are the data sheet's excursions. Its heave
+        /// excursion, +/-0.178 m, is taken about neutral (MBC heave -0.22, which
+        /// is negative upwards): neutral is mid-stroke (CDS32830 5.2.2), and the
+        /// actuator length limits there (0.020 to 0.320 m of stroke) put the
+        /// legs' own ends at heave -0.411 and -0.029, centred on -0.22. Those
+        /// numbers come from HexapodGeometry and the retracted joint length
+        /// measured on 2026-11-25 (0.7186 m). Each bound holds with the other
+        /// axes at neutral only: surge 0.259 with heave -0.398, for one, asks a
+        /// leg for 0.44 m of stroke.</para>
         /// </summary>
         public static MotionEnvelope MoogMbE6Dof { get; } = new MotionEnvelope(
             roll:  new AxisLimits(-21 * Deg, 21 * Deg, 30 * Deg, 1.75),
@@ -58,6 +60,6 @@ namespace Simph.Core.Motion.Limits
             yaw:   new AxisLimits(-22 * Deg, 22 * Deg, 40 * Deg, 1.75),
             surge: new AxisLimits(-0.241, 0.259, 0.5, 2.0),
             sway:  new AxisLimits(-0.259, 0.259, 0.5, 2.0),
-            heave: new AxisLimits(-Unknown, Unknown, 0.3, 2.0));
+            heave: new AxisLimits(-0.398, -0.042, 0.3, 2.0));
     }
 }

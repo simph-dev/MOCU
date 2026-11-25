@@ -46,13 +46,14 @@
 
   // What the lab allows. A movement outside these is refused before anything is
   // sent. Positions and speeds from the data sheet; accelerations set equal to
-  // ACC_LIM, since nothing past it can be delivered as asked. Heave position is
-  // left open (null): the data sheet's +/-0.178 m and the MBC's heave are
-  // measured from different origins, and a guessed bound is worse than none.
+  // ACC_LIM, since nothing past it can be delivered as asked. Heave is the data
+  // sheet's +/-0.178 m about neutral (-0.22), which is mid-stroke: the actuator
+  // length limits put the legs' ends at -0.411 and -0.029. Each bound holds with
+  // the other axes at neutral only. A null min or max leaves that bound unchecked.
   "safetyLimits": {
     "surge": { "min": -0.241, "max": 0.259, "speed": 0.5, "acceleration": 2.0 },
     "sway":  { "min": -0.259, "max": 0.259, "speed": 0.5, "acceleration": 2.0 },
-    "heave": { "min": null,   "max": null,  "speed": 0.3, "acceleration": 2.0 },
+    "heave": { "min": -0.398, "max": -0.042, "speed": 0.3, "acceleration": 2.0 },
     "roll":  { "minDegrees": -21, "maxDegrees": 21, "speedDegrees": 30, "acceleration": 1.75 },
     "pitch": { "minDegrees": -22, "maxDegrees": 22, "speedDegrees": 30, "acceleration": 1.75 },
     "yaw":   { "minDegrees": -22, "maxDegrees": 22, "speedDegrees": 40, "acceleration": 1.75 }

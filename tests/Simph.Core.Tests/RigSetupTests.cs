@@ -49,10 +49,27 @@ public class RigSetupTests
         Assert.Equal(HexapodGeometry.MoogMbE6Dof.LegLengths(neutral), TheLabsSetup().Model.LegGeometry.LegLengths(neutral));
     }
 
+    /// <summary>
+    /// Heave was left unchecked until 2026-11-25. The bound is the data sheet's
+    /// excursion about neutral; a movement that goes past it is refused.
+    /// </summary>
     [Fact]
-    public void A_heave_bound_left_null_stays_unchecked()
+    public void Heave_is_bounded_about_neutral()
     {
-        Assert.False(TheLabsSetup().Envelope[Axis.Heave].PositionKnown);
+        var heave = TheLabsSetup().Envelope[Axis.Heave];
+
+        Assert.True(heave.PositionKnown);
+        Assert.Equal(-0.22 - 0.178, heave.MinPosition, 9);
+        Assert.Equal(-0.22 + 0.178, heave.MaxPosition, 9);
+    }
+
+    [Fact]
+    public void A_bound_left_null_stays_unchecked()
+    {
+        string json = File.ReadAllText(RigSetup.DefaultPath)
+            .Replace("\"min\": -0.398, \"max\": -0.042", "\"min\": null, \"max\": null");
+
+        Assert.False(RigSetup.Parse(json).Envelope[Axis.Heave].PositionKnown);
     }
 
     [Fact]
