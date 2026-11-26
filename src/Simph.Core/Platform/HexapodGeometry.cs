@@ -105,6 +105,8 @@ namespace Simph.Core.Platform
         /// The pose that gives these leg lengths, found by Newton's method from a
         /// nearby guess. There is no closed form for a Stewart platform; from a
         /// guess within a few centimetres it converges in two or three steps.
+        /// Lengths no pose can make, or a guess too far away, throw rather than
+        /// return a pose that does not fit.
         /// </summary>
         public Pose6 PoseFromLegLengths(double[] lengths, Pose6 guess)
         {
@@ -114,12 +116,16 @@ namespace Simph.Core.Platform
             const int maxIterations = 20;
             const double toleranceMetres = 1e-12;
 
+            // A pose whose legs are off by more than a nanometre is not an answer;
+            // a converged one is off by about 1e-15 m.
+            const double acceptedMetres = 1e-9;
+
             var pose = guess;
             var current = new double[6];
             var shifted = new double[6];
             var jacobian = new double[6, 7];
 
-            for (int iteration = 0; iteration < maxIterations; iteration++)
+            for (int iteration = 0; ; iteration++)
             {
                 LegLengths(pose, current);
 
@@ -128,6 +134,14 @@ namespace Simph.Core.Platform
                     worst = Math.Max(worst, Math.Abs(current[i] - lengths[i]));
 
                 if (worst < toleranceMetres) break;
+
+                // Math.Max carries a NaN through, and NaN fails this test too.
+                if (iteration == maxIterations)
+                {
+                    if (worst < acceptedMetres) break;
+                    throw new ArithmeticException(
+                        $"No pose found for these leg lengths: a leg still off by {worst:G3} m after {maxIterations} steps.");
+                }
 
                 for (int j = 0; j < 6; j++)
                 {

@@ -63,4 +63,18 @@ public class HexapodGeometryTests
         Assert.Equal(legs[2], legs[5], 12);
         Assert.Equal(legs[3], legs[4], 12);
     }
+
+    /// <summary>
+    /// Lengths no pose can make: before, Newton returned whatever it had after
+    /// twenty steps, a pose whose legs did not match, without a word.
+    /// </summary>
+    [Theory]
+    [InlineData(10.0)]
+    [InlineData(double.NaN)]
+    public void Lengths_no_pose_can_make_are_refused(double length)
+    {
+        var lengths = new[] { length, length, length, 0.88, 0.88, 0.88 };
+
+        Assert.Throws<ArithmeticException>(() => Geometry.PoseFromLegLengths(lengths, Pose6.Translation(0, 0, -0.22)));
+    }
 }
