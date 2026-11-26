@@ -165,7 +165,7 @@ namespace Simph.Core.Motion.Limits
         }
 
         /// <summary>
-        /// Each leg's length over the poses, against what the legs can do. The
+        /// Each leg's length over the poses, against what the MBC lets it do. The
         /// limits per axis cannot see this: they hold with the other axes at
         /// neutral, and combined they can ask a leg for more than its stroke.
         /// </summary>

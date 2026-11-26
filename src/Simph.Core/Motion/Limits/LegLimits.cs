@@ -33,16 +33,17 @@ namespace Simph.Core.Motion.Limits
         public double LongestMetres { get; }
 
         /// <summary>
-        /// The lab's MB-E-6DOF/12/1000. The actuators' software length limits,
-        /// 0.02032 to 0.32004 m of stroke, are the defaults in CDS32830 5.2.2 and
-        /// still to be checked against the MBC's own configuration; the joint
-        /// length of a fully retracted leg, 0.71863 m, was measured on
-        /// 2026-11-25 against the MBC's reported leg lengths (0.718621-0.718635
-        /// over the six legs). These limits are stricter than the data sheet:
-        /// sway 0.25 m at neutral needs 0.331 m of stroke, so either this
-        /// machine's limits are wider than the defaults or the sheet's sideways
-        /// excursion is not reachable at neutral heave. Until the MBC's own
-        /// numbers are read, the stricter answer is the one kept.
+        /// The lab's MB-E-6DOF/12/1000. The MBC limits each leg's command to
+        /// 0.02032-0.32004 m of stroke (its geometry.xml, Limits > Length
+        /// (Command), read on 2026-11-26; it faults past 0.01778-0.32258, of a
+        /// full stroke of 0.34036). Stroke is counted from a retracted joint
+        /// length the MBC takes as 0.71882 m; against our geometry its reported
+        /// leg lengths put that at 0.71863 m (0.718621-0.718635 over the six
+        /// legs, measured 2026-11-25), and the limits are set on that, so they
+        /// are where the MBC applies them. They are stricter than the data
+        /// sheet: sway 0.25 m at neutral needs 0.331 m of stroke, so the sheet's
+        /// +/-0.259 m sideways is not reachable at neutral heave on this
+        /// configuration; the MBC would clamp the legs.
         /// </summary>
         public static LegLimits MoogMbE6Dof { get; } =
             new LegLimits(HexapodGeometry.MoogMbE6Dof, 0.71863 + 0.02032, 0.71863 + 0.32004);

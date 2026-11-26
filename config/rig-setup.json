@@ -54,14 +54,13 @@
     "yaw":   { "minDegrees": -22, "maxDegrees": 22, "speedDegrees": 40, "acceleration": 1.75 },
 
     // Each leg, joint to joint: fully retracted it is retractedLength (measured
-    // 2026-11-25 against the MBC's reported leg lengths), and the actuators'
-    // software limits allow minStroke to maxStroke beyond that (the defaults in
-    // CDS32830 5.2.2; still to be checked against the MBC's configuration). The
-    // limits per axis hold with the other axes at neutral only; this catches
+    // 2026-11-25 against the MBC's reported leg lengths; the MBC's own figure is
+    // 0.71882), and the MBC limits each leg's command to minStroke..maxStroke
+    // beyond that (geometry.xml, Limits > Length (Command), read 2026-11-26).
+    // The limits per axis hold with the other axes at neutral only; this catches
     // combinations. It is also stricter than the data sheet: sway 0.25 at
-    // neutral needs 0.331 m of stroke, so either this machine's limits are wider
-    // or the sheet's +/-0.259 m sideways is not reachable at neutral heave.
-    // Leaving it out leaves the legs unchecked.
+    // neutral needs 0.331 m of stroke, so the sheet's +/-0.259 m sideways is not
+    // reachable at neutral heave here. Leaving it out leaves the legs unchecked.
     "legs": { "retractedLength": 0.71863, "minStroke": 0.02032, "maxStroke": 0.32004 }
   }
 }
