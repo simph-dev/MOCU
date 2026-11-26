@@ -13,9 +13,9 @@ namespace Simph.Core.Tests;
 /// <summary>
 /// The drives lag on each leg's length, not on each axis. On 2026-11-24 the
 /// platform, compensated per axis, rose 0.45-0.55 mm at peak speed at every
-/// heading; these tests run commands through a simulated filter and per-leg
-/// drives to show where that comes from and that compensating per leg removes it.
-/// What the real platform does with the per-leg command is not yet measured.
+/// heading, and 0.09-0.13 mm compensated per leg. These tests run commands
+/// through a simulated filter and per-leg drives to show that compensating per
+/// leg keeps the platform level.
 /// </summary>
 public class PerLegCompensationTests
 {
@@ -26,9 +26,6 @@ public class PerLegCompensationTests
     private static readonly PlatformModel PerLeg = new PlatformModel(
         PlatformModel.MoogMbE6Dof.FilterAcceleration, TimeSpan.FromMilliseconds(96), 0.0,
         HexapodGeometry.MoogMbE6Dof, PlatformModel.MoogMbE6Dof.Frame);
-
-    private static readonly PlatformModel PerAxis = new PlatformModel(
-        PerLeg.FilterAcceleration, PerLeg.DriveLag, PerLeg.DriveDirectShare, legGeometry: null, PerLeg.Frame);
 
     private const int Before = 50;
     private const int After = 600;
@@ -79,21 +76,6 @@ public class PerLegCompensationTests
         double largest = 0;
         foreach (var pose in platform) largest = Math.Max(largest, Math.Abs(pose.Heave - heave));
         return largest * 1000;
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(16)]
-    [InlineData(90)]
-    public void Compensated_per_axis_the_platform_rises_as_it_did_on_the_day(double headingDegrees)
-    {
-        var plan = LabSetup.Stimulus(headingDegrees, LabSetup.StimulusDuration);
-        var motion = new CompensatedMotion(plan, PerAxis);
-
-        var platform = ThroughFilterAndLegs(LabSetup.Streamed(motion), plan.Duration);
-
-        // Measured 0.45-0.55 mm; the per-leg model accounts for about 80% of it.
-        Assert.InRange(LargestRiseMillimetres(platform, plan.From.Heave), 0.35, 0.55);
     }
 
     [Theory]

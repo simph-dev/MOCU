@@ -47,7 +47,6 @@ namespace Simph.MoogProbe
         private double? _neutralHeaveGiven;
         private double? _driveLagGivenMilliseconds;
         private double? _driveDirectShareGiven;
-        private string? _lagActsOnGiven;
 
         public Phase Phase { get; private set; } = Phase.Listen;
 
@@ -124,8 +123,6 @@ namespace Simph.MoogProbe
 
         public double DriveDirectShare => Model.DriveDirectShare;
 
-        public string DriveLagActsOn => Model.LegGeometry != null ? "legs" : "axes";
-
         /// <summary>Required before anything that moves the platform.</summary>
         public bool Armed { get; private set; }
 
@@ -161,7 +158,7 @@ namespace Simph.MoogProbe
             (RequestedFeedback != StatusResponseWord.FeedbackDof ? $"-feedback{RequestedFeedback:X2}" : "") +
             (Precompensate ? "-precomp" : "") +
             (Precompensate && DriveLagMilliseconds > 0
-                ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + DriveLagActsOn
+                ? "-lag" + DriveLagMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + "legs"
                 : "") +
             (Precompensate && DriveDirectShare > 0
                 ? "-direct" + DriveDirectShare.ToString("F3", CultureInfo.InvariantCulture)
@@ -170,7 +167,7 @@ namespace Simph.MoogProbe
         public string Header =>
             $"phase {Phase}, sending {Rate} packets/s, declaring {StatusResponseWord.Describe(StatusWord)}, " +
             $"{CopiesPerCommand} cop{(CopiesPerCommand == 1 ? "y" : "ies")} per command" +
-            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F1} ms with {DriveDirectShare:P1} arriving at once compensated on the {DriveLagActsOn}" : "") +
+            (Precompensate ? $", filter compensated, drive lag {DriveLagMilliseconds:F1} ms with {DriveDirectShare:P1} arriving at once compensated on the legs" : "") +
             Environment.NewLine +
             $"host {Host}, mbc {Mbc}, setup {SetupPath}";
 
@@ -191,14 +188,7 @@ namespace Simph.MoogProbe
             // A lag given alone describes a pure lag: keeping the setup's direct
             // share with someone else's lag would mix two models.
             double share = _driveDirectShareGiven ?? (_driveLagGivenMilliseconds.HasValue ? 0.0 : model.DriveDirectShare);
-            var geometry = _lagActsOnGiven switch
-            {
-                "axes" => null,
-                "legs" => model.LegGeometry ?? HexapodGeometry.MoogMbE6Dof,
-                _ => model.LegGeometry
-            };
-
-            Model = new PlatformModel(model.FilterAcceleration, lag, share, geometry, model.Frame);
+            Model = new PlatformModel(model.FilterAcceleration, lag, share, model.LegGeometry, model.Frame);
         }
 
 
@@ -240,7 +230,6 @@ namespace Simph.MoogProbe
                         case "--dither": options.DitherMetres = Number(value) / 1000.0; break;
                         case "--dither-hz": options.DitherHz = Number(value); break;
                         case "--drive-lag": options._driveLagGivenMilliseconds = Number(value); break;
-                        case "--lag-in": options._lagActsOnGiven = ParseLagActsOn(value); break;
                         case "--drive-direct": options._driveDirectShareGiven = Number(value); break;
                         case "--setup": options.SetupPath = value; break;
                         case "--dwell": options.DwellSeconds = Number(value); break;
@@ -319,22 +308,14 @@ namespace Simph.MoogProbe
                 return false;
             }
 
-            if ((options._driveLagGivenMilliseconds.HasValue || options._driveDirectShareGiven.HasValue ||
-                 options._lagActsOnGiven != null) && !options.Precompensate)
+            if ((options._driveLagGivenMilliseconds.HasValue || options._driveDirectShareGiven.HasValue) && !options.Precompensate)
             {
-                error = "--drive-lag, --drive-direct and --lag-in only mean something with --precompensate.";
+                error = "--drive-lag and --drive-direct only mean something with --precompensate.";
                 return false;
             }
 
             return true;
         }
-
-        private static string ParseLagActsOn(string value) => value.ToLowerInvariant() switch
-        {
-            "legs" => "legs",
-            "axes" => "axes",
-            _ => throw new FormatException("expected legs or axes")
-        };
 
         private static double Number(string value) =>
             double.Parse(value, CultureInfo.InvariantCulture);
@@ -405,8 +386,6 @@ namespace Simph.MoogProbe
   --drive-direct F           with --precompensate, the share of a command that
                              reaches the legs at once (default from the setup;
                              0 when only --drive-lag is given)
-  --lag-in legs|axes         with --precompensate, override where the drive lag
-                             acts (setup: legs)
   --setup FILE               rig setup (default rig-setup.json next to the exe,
                              copied from config/rig-setup.json)
   --heave M                  neutral heave (default from the setup, -0.22)

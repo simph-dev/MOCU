@@ -27,11 +27,6 @@
     "driveLagMilliseconds": 107.4,
     "driveDirectShare": 0.092,
 
-    // "legs": the lag acts on each leg's length (measured 2026-11-24: compensating
-    // per axis left the platform rising about 0.5 mm at peak speed).
-    // "axes": the older per-axis form.
-    "driveLagActsOn": "legs",
-
     // geometry.xml: Base and Platform Radial and Transverse Offsets; the joint
     // planes are 0.47752 m apart with the platform settled. Reproduces the
     // configured leg lengths (0.71882 settled, 0.88114 at neutral) to 0.2 mm.

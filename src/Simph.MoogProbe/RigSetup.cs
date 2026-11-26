@@ -57,12 +57,7 @@ namespace Simph.MoogProbe
                 ? Number(model, "driveDirectShare")
                 : 0.0;
 
-            HexapodGeometry? geometry = Text(model, "driveLagActsOn") switch
-            {
-                "legs" => ReadGeometry(Field(model, "geometry")),
-                "axes" => null,
-                var other => throw new FormatException($"model.driveLagActsOn: expected \"legs\" or \"axes\", found \"{other}\".")
-            };
+            var geometry = ReadGeometry(Field(model, "geometry"));
 
             var limits = Field(root, "safetyLimits");
 

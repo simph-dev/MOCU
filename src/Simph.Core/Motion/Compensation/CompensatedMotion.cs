@@ -39,7 +39,6 @@ namespace Simph.Core.Motion.Compensation
         private readonly PlatformModel _model;
         private readonly TrajectoryFilterModel[] _filters = new TrajectoryFilterModel[6];
         private readonly TimeSpan _frame;
-        private readonly TimeSpan _halfFrame;
         private readonly double _dt;
         private readonly double _lagLeadSeconds;
         private readonly double _directShareLagSeconds;
@@ -50,7 +49,6 @@ namespace Simph.Core.Motion.Compensation
             _model = model ?? throw new ArgumentNullException(nameof(model));
 
             _frame = model.Frame;
-            _halfFrame = TimeSpan.FromTicks(_frame.Ticks / 2);
             _dt = _frame.TotalSeconds;
 
             foreach (var axis in Axes.All)
@@ -116,16 +114,7 @@ namespace Simph.Core.Motion.Compensation
             var outputs = new Pose6[count];
             var geometry = _model.LegGeometry;
 
-            // On the leg lengths where the drives work, or per axis in the older form.
-            double[] Led(Timestamp planTime) => geometry != null && _lagLeadSeconds > 0
-                ? LegLead(planTime)
-                : AsVector(_plan.Evaluate(planTime) + _plan.Velocity(planTime + _halfFrame) * _lagLeadSeconds);
-
-            Pose6 AsPose(double[] v, Pose6 guess) => geometry != null && _lagLeadSeconds > 0
-                ? geometry.PoseFromLegLengths(v, guess)
-                : new Pose6(roll: v[0], pitch: v[1], yaw: v[2], surge: v[3], sway: v[4], heave: v[5]);
-
-            var previous = Led(_plan.T0 - _frame);
+            var previous = LegLead(_plan.T0 - _frame);
             var smoothed = (double[])previous.Clone();
             var guess = _plan.From;
 
@@ -136,7 +125,7 @@ namespace Simph.Core.Motion.Compensation
 
             for (int k = 0; k < count; k++)
             {
-                var led = Led(_plan.T0 + TimeSpan.FromTicks(_frame.Ticks * k));
+                var led = LegLead(_plan.T0 + TimeSpan.FromTicks(_frame.Ticks * k));
 
                 for (int i = 0; i < led.Length; i++)
                 {
@@ -146,7 +135,7 @@ namespace Simph.Core.Motion.Compensation
                     smoothed[i] = led[i] - rate * t + (smoothed[i] - previous[i] + rate * t) * decay;
                 }
 
-                guess = AsPose(smoothed, guess);
+                guess = geometry.PoseFromLegLengths(smoothed, guess);
                 outputs[k] = guess;
                 previous = led;
             }
@@ -174,24 +163,8 @@ namespace Simph.Core.Motion.Compensation
             return led;
         }
 
-        private static double[] AsVector(Pose6 pose) =>
-            new[] { pose.Roll, pose.Pitch, pose.Yaw, pose.Surge, pose.Sway, pose.Heave };
-
         /// <summary>The speed of the filter's output over frame k.</summary>
-        private Pose6 FilterOutputVelocity(int k, Pose6[] outputs)
-        {
-            // Per axis, with nothing smoothed, from the plan's analytic
-            // derivatives: differencing would multiply the 1e-7 error of the erf
-            // approximation by the lag gain and by 1 / dt. Otherwise there is no
-            // analytic form, so it is differenced.
-            if ((_model.LegGeometry == null || _lagLeadSeconds == 0) && _directShareLagSeconds == 0)
-            {
-                var planTime = _plan.T0 + TimeSpan.FromTicks(_frame.Ticks * k);
-                return _plan.Velocity(planTime + _halfFrame) + _plan.Acceleration(planTime + _frame) * _lagLeadSeconds;
-            }
-
-            return (outputs[k + 1] - outputs[k]) / _dt;
-        }
+        private Pose6 FilterOutputVelocity(int k, Pose6[] outputs) => (outputs[k + 1] - outputs[k]) / _dt;
 
         /// <summary>What to send on frame k.</summary>
         private Pose6 CommandAt(int k, Pose6[] outputs)

@@ -90,12 +90,4 @@ public class RigSetupTests
         Assert.DoesNotContain("\"driveDirectShare\"", json);
         Assert.Equal(0.0, RigSetup.Parse(json).Model.DriveDirectShare);
     }
-
-    [Fact]
-    public void The_older_per_axis_form_can_still_be_chosen()
-    {
-        string json = File.ReadAllText(RigSetup.DefaultPath).Replace("\"driveLagActsOn\": \"legs\"", "\"driveLagActsOn\": \"axes\"");
-
-        Assert.Null(RigSetup.Parse(json).Model.LegGeometry);
-    }
 }

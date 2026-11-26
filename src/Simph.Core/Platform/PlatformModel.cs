@@ -23,9 +23,9 @@ namespace Simph.Core.Platform
         /// a pure first-order lag; see <see cref="DriveDirectShare"/>.
         /// </param>
         /// <param name="legGeometry">
-        /// When given, the drive lag acts on each leg's length, which is where the
-        /// drives really work. Null applies it per axis, which leaves the platform
-        /// rising about half a millimetre on a fast diagonal movement.
+        /// Where the legs are. The drive lag acts on each leg's length, where the
+        /// drives really work: compensated per axis instead, the platform rose
+        /// 0.45-0.55 mm on a fast diagonal movement (2026-11-24).
         /// </param>
         /// <param name="frame">One MBC frame, 1 ms.</param>
         public PlatformModel(Pose6 filterAcceleration, TimeSpan driveLag, double driveDirectShare, HexapodGeometry legGeometry, TimeSpan frame)
@@ -42,7 +42,7 @@ namespace Simph.Core.Platform
             FilterAcceleration = filterAcceleration;
             DriveLag = driveLag;
             DriveDirectShare = driveDirectShare;
-            LegGeometry = legGeometry;
+            LegGeometry = legGeometry ?? throw new ArgumentNullException(nameof(legGeometry));
             Frame = frame;
         }
 

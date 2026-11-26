@@ -113,9 +113,9 @@ Compensated as the rig setup describes the platform: the trajectory filter
 inverted and the drives led on each leg, which should put the specified profile
 on the platform with the path straight and level. Then the same with the older
 pure 96 ms lag (`--drive-lag` alone sets the direct share to zero; it ends the movement
-about 40 ms late), with the drive lag led per axis, the form measured on
-2026-11-24 (straight, but rising about 0.5 mm at peak speed), and with the
-filter alone:
+about 40 ms late), and with the filter alone. (Leading the drive lag per
+axis instead of per leg, measured on 2026-11-24, left the platform rising
+about 0.5 mm at peak speed; that form is gone.)
 
 ```bash
 dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --repeats 3 --arm
@@ -123,10 +123,6 @@ dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precom
 
 ```bash
 dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --drive-lag 96 --repeats 3 --arm
-```
-
-```bash
-dotnet run --project src/Simph.MoogProbe -- --phase move --duration 1.0 --precompensate --lag-in axes --repeats 3 --arm
 ```
 
 ```bash
