@@ -61,6 +61,14 @@ namespace Simph.MoogProbe
 
             var limits = Field(root, "safetyLimits");
 
+            // Optional: a setup without it leaves the legs unchecked.
+            LegLimits? legs = null;
+            if (limits.TryGetProperty("legs", out var l))
+            {
+                double retracted = Number(l, "retractedLength");
+                legs = new LegLimits(geometry, retracted + Number(l, "minStroke"), retracted + Number(l, "maxStroke"));
+            }
+
             return new RigSetup(
                 Text(root, "name"),
                 ProbeOptions.ParseEndPoint(Text(root, "host"), 16386),
@@ -73,7 +81,8 @@ namespace Simph.MoogProbe
                     yaw: Rotation(Field(limits, "yaw")),
                     surge: Translation(Field(limits, "surge")),
                     sway: Translation(Field(limits, "sway")),
-                    heave: Translation(Field(limits, "heave"))));
+                    heave: Translation(Field(limits, "heave")),
+                    legs: legs));
         }
 
         private static HexapodGeometry ReadGeometry(JsonElement g) => new HexapodGeometry(

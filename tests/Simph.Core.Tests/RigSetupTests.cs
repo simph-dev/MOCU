@@ -73,6 +73,16 @@ public class RigSetupTests
     }
 
     [Fact]
+    public void The_leg_limits_are_the_same_as_the_core_s()
+    {
+        var legs = TheLabsSetup().Envelope.Legs;
+
+        Assert.NotNull(legs);
+        Assert.Equal(LegLimits.MoogMbE6Dof.ShortestMetres, legs!.ShortestMetres, 9);
+        Assert.Equal(LegLimits.MoogMbE6Dof.LongestMetres, legs.LongestMetres, 9);
+    }
+
+    [Fact]
     public void A_missing_field_is_named()
     {
         string json = File.ReadAllText(RigSetup.DefaultPath).Replace("\"driveLagMilliseconds\"", "\"driveLag\"");

@@ -87,6 +87,8 @@ namespace Simph.Core.Motion.Limits
                 CheckOnset(issues, axis, onsetSpeed[axis], limits, unit);
             }
 
+            CheckLegs(issues, Sampled(plan), "plan");
+
             return new ValidationResult(issues);
         }
 
@@ -139,7 +141,63 @@ namespace Simph.Core.Motion.Limits
                 CheckCommandSteps(issues, axis, table, limits, unit);
             }
 
+            CheckLegs(issues, Frames(table), "command");
+
             return new ValidationResult(issues);
+        }
+
+
+        /// <summary>The plan every millisecond, its end included.</summary>
+        private static IEnumerable<Pose6> Sampled(MotionPlan plan)
+        {
+            var step = TimeSpan.FromMilliseconds(1);
+
+            for (var t = plan.T0; t < plan.End; t += step)
+                yield return plan.Evaluate(t);
+
+            yield return plan.To;
+        }
+
+        private static IEnumerable<Pose6> Frames(CommandTable table)
+        {
+            for (int k = 0; k < table.Count; k++)
+                yield return table[k];
+        }
+
+        /// <summary>
+        /// Each leg's length over the poses, against what the legs can do. The
+        /// limits per axis cannot see this: they hold with the other axes at
+        /// neutral, and combined they can ask a leg for more than its stroke.
+        /// </summary>
+        private void CheckLegs(ICollection<ValidationIssue> issues, IEnumerable<Pose6> poses, string what)
+        {
+            var legs = _envelope.Legs;
+            if (legs == null) return;
+
+            double shortest = double.PositiveInfinity, longest = double.NegativeInfinity;
+            int shortestLeg = 0, longestLeg = 0;
+            var lengths = new double[6];
+
+            foreach (var pose in poses)
+            {
+                legs.Geometry.LegLengths(pose, lengths);
+
+                for (int i = 0; i < 6; i++)
+                {
+                    if (lengths[i] < shortest) { shortest = lengths[i]; shortestLeg = i; }
+                    if (lengths[i] > longest) { longest = lengths[i]; longestLeg = i; }
+                }
+            }
+
+            if (shortest < legs.ShortestMetres)
+                issues.Add(new ValidationIssue(IssueSeverity.Rejected, null, "leg length",
+                    $"the {what} needs leg {shortestLeg} at {shortest:F4} m joint to joint, shorter than its " +
+                    $"{legs.ShortestMetres:F4} m", shortest, legs.ShortestMetres));
+
+            if (longest > legs.LongestMetres)
+                issues.Add(new ValidationIssue(IssueSeverity.Rejected, null, "leg length",
+                    $"the {what} needs leg {longestLeg} at {longest:F4} m joint to joint, longer than its " +
+                    $"{legs.LongestMetres:F4} m", longest, legs.LongestMetres));
         }
 
 

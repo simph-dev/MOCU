@@ -286,6 +286,39 @@ public class MotionValidatorTests
         Assert.NotNull(IssueFor(result, Axis.Surge, "command step"));
     }
 
+    /// <summary>
+    /// Forward and low, each axis inside its own limit, but together they ask the
+    /// front legs for about 0.43 m of stroke where they have 0.32. The MBC would
+    /// clamp them and bend the movement without saying so.
+    /// </summary>
+    [Fact]
+    public void Refuses_a_pose_the_legs_cannot_reach_though_each_axis_is_within_its_limit()
+    {
+        var plan = new MotionPlan(LabSetup.Neutral, Pose6.Translation(surge: 0.25, sway: 0, heave: -0.39),
+            TimeSpan.FromSeconds(4), Timestamp.Zero, LabSetup.Profile());
+
+        var result = Validator().Validate(plan);
+
+        Assert.DoesNotContain(result.Issues, issue => issue.Check == "position");
+        Assert.Contains(result.Rejections, issue => issue.Check == "leg length");
+    }
+
+    [Fact]
+    public void The_standard_stimulus_keeps_every_leg_within_its_stroke()
+    {
+        var result = Validator().Validate(LabSetup.Compensated(LabSetup.Intended()));
+
+        Assert.DoesNotContain(result.Issues, issue => issue.Check == "leg length");
+    }
+
+    [Fact]
+    public void Checks_the_legs_on_every_frame_of_the_command()
+    {
+        var result = Validator().Validate(Tampered(500, pose => pose.With(Axis.Heave, -0.45)));
+
+        Assert.Contains(result.Rejections, issue => issue.Check == "leg length" && issue.Message.Contains("command"));
+    }
+
     [Fact]
     public void Refuses_a_command_with_one_frame_that_is_not_a_number()
     {
