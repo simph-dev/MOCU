@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Data\*.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Simph.Core\Simph.Core.csproj" />
     <ProjectReference Include="..\..\src\Simph.MoogProbe\Simph.MoogProbe.csproj" />
   </ItemGroup>

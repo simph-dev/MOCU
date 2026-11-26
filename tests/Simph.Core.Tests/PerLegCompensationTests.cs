@@ -30,45 +30,16 @@ public class PerLegCompensationTests
     private const int Before = 50;
     private const int After = 600;
 
-    /// <summary>
-    /// Sends a command stream through the MBC's filter on every translation axis,
-    /// turns the filter's output into leg lengths, lags each leg by the drive time
-    /// constant and turns the lagged lengths back into the platform's pose.
-    /// </summary>
+    /// <summary>What the 96 ms per-leg machine does with the command, with rest before and after.</summary>
     private static Pose6[] ThroughFilterAndLegs(Func<Timestamp, Pose6> command, TimeSpan duration)
     {
-        var geometry = PerLeg.LegGeometry;
         int frames = Before + (int)duration.TotalMilliseconds + After;
-        double dt = PerLeg.Frame.TotalSeconds;
-        double alpha = 1.0 - Math.Exp(-dt / PerLeg.DriveLag.TotalSeconds);
 
         var sent = new Pose6[frames];
         for (int n = 0; n < frames; n++)
             sent[n] = command(Timestamp.Zero + TimeSpan.FromMilliseconds(n - Before));
 
-        var filtered = new double[3][];
-        Axis[] moving = { Axis.Surge, Axis.Sway, Axis.Heave };
-        for (int a = 0; a < 3; a++)
-        {
-            var input = new double[frames];
-            for (int n = 0; n < frames; n++) input[n] = sent[n][moving[a]];
-            filtered[a] = new TrajectoryFilterModel(PerLeg.FilterAcceleration[moving[a]], PerLeg.Frame).Run(input);
-        }
-
-        var legs = geometry.LegLengths(sent[0]);
-        var pose = sent[0];
-        var platform = new Pose6[frames];
-
-        for (int n = 0; n < frames; n++)
-        {
-            var wanted = geometry.LegLengths(Pose6.Translation(filtered[0][n], filtered[1][n], filtered[2][n]));
-            for (int i = 0; i < 6; i++) legs[i] += alpha * (wanted[i] - legs[i]);
-
-            pose = geometry.PoseFromLegLengths(legs, pose);
-            platform[n] = pose;
-        }
-
-        return platform;
+        return new PlatformResponse(PerLeg).Predict(sent);
     }
 
     private static double LargestRiseMillimetres(Pose6[] platform, double heave)

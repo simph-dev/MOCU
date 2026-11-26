@@ -37,51 +37,19 @@ public class DriveCompensationTests
     private const int After = 900;
 
     /// <summary>
-    /// The MBC's filter on every translation axis, then on each leg the direct
-    /// share of the filter's output at once and the rest through the lag, then
-    /// back to a pose.
+    /// What a machine as <paramref name="machine"/> describes does with the
+    /// command, from <see cref="Before"/> frames before it to <see cref="After"/>
+    /// after.
     /// </summary>
     private static Pose6[] ThroughFilterAndLegs(Func<Timestamp, Pose6> command, TimeSpan duration, PlatformModel machine)
     {
-        var geometry = machine.LegGeometry;
         int frames = Before + (int)duration.TotalMilliseconds + After;
-        double dt = machine.Frame.TotalSeconds;
-        double alpha = 1.0 - Math.Exp(-dt / machine.DriveLag.TotalSeconds);
-        double share = machine.DriveDirectShare;
 
         var sent = new Pose6[frames];
         for (int n = 0; n < frames; n++)
             sent[n] = command(Timestamp.Zero + TimeSpan.FromMilliseconds(n - Before));
 
-        Axis[] moving = { Axis.Surge, Axis.Sway, Axis.Heave };
-        var filtered = new double[3][];
-        for (int a = 0; a < 3; a++)
-        {
-            var input = new double[frames];
-            for (int n = 0; n < frames; n++) input[n] = sent[n][moving[a]];
-            filtered[a] = new TrajectoryFilterModel(machine.FilterAcceleration[moving[a]], machine.Frame).Run(input);
-        }
-
-        var lagged = geometry.LegLengths(Pose6.Translation(filtered[0][0], filtered[1][0], filtered[2][0]));
-        var legs = new double[6];
-        var pose = sent[0];
-        var platform = new Pose6[frames];
-
-        for (int n = 0; n < frames; n++)
-        {
-            var wanted = geometry.LegLengths(Pose6.Translation(filtered[0][n], filtered[1][n], filtered[2][n]));
-
-            for (int leg = 0; leg < 6; leg++)
-            {
-                lagged[leg] += alpha * (wanted[leg] - lagged[leg]);
-                legs[leg] = share * wanted[leg] + (1 - share) * lagged[leg];
-            }
-
-            pose = geometry.PoseFromLegLengths(legs, pose);
-            platform[n] = pose;
-        }
-
-        return platform;
+        return new PlatformResponse(machine).Predict(sent);
     }
 
     /// <summary>Milliseconds from the plan's start until the platform first reaches this fraction of the path.</summary>
