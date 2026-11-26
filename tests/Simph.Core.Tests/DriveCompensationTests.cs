@@ -191,6 +191,22 @@ public class DriveCompensationTests
         }
     }
 
+    /// <summary>
+    /// The profile's cut-off step, smoothed over the direct share's 9.9 ms, once
+    /// read as 2.26 m/s^2 at the start of 25 cm in 1.4 s and had it refused.
+    /// The movement itself asks the filter for 1.38.
+    /// </summary>
+    [Fact]
+    public void The_cut_off_step_is_not_counted_as_the_movement_s_acceleration()
+    {
+        var plan = LabSetup.Stimulus(0, TimeSpan.FromMilliseconds(1400));
+        var longer = new MotionPlan(plan.From, plan.From + Pose6.Translation(0.25, 0, 0), plan.Duration, plan.T0, plan.Profile);
+
+        var demand = new CompensatedMotion(longer, Fitted).Measure();
+
+        Assert.InRange(demand.PeakAcceleration.Surge, 1.3, 1.45);
+    }
+
     [Theory]
     [InlineData(-0.01)]
     [InlineData(1.0)]

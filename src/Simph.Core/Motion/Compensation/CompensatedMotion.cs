@@ -205,17 +205,22 @@ namespace Simph.Core.Motion.Compensation
             int frames = FrameCount;
             var outputs = FilterOutputs(frames + 4);
 
+            // The profile is cut off at both ends with a little speed left, so
+            // the frames next to them carry a small step. The filter's own clamp
+            // takes that up within a few milliseconds; it says nothing about
+            // whether the movement itself can be followed. Smoothing the direct
+            // share spreads the step over its own lag (9.9 ms), so three of those
+            // are left out as well: at 25 cm in 1.4 s the step alone otherwise
+            // reads as 2.26 m/s^2 against the movement's own 1.38.
+            int edge = EdgeFrames + (int)Math.Ceiling(3 * _directShareLagSeconds / _dt);
+
             for (int n = 0; n <= frames + 2; n++)
             {
                 var before = n == 0 ? _plan.From : outputs[n - 1];
                 var at = outputs[n];
                 var after = outputs[n + 1];
 
-                // The profile is cut off at both ends with a little speed left, so
-                // the frames next to them carry a small step. The filter's own
-                // clamp takes that up within a few milliseconds; it says nothing
-                // about whether the movement itself can be followed.
-                bool insideTheMovement = n >= EdgeFrames && n <= frames - EdgeFrames;
+                bool insideTheMovement = n >= edge && n <= frames - edge;
 
                 if (!insideTheMovement) continue;
 
